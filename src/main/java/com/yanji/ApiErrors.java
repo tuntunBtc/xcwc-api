@@ -10,6 +10,14 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @RestControllerAdvice
 public class ApiErrors {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<?> oversized(Exception error) {
+        return ResponseEntity.status(413).body(Map.of("code","IMAGE_TOO_LARGE","message","照片超出上传大小限制"));
+    }
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    ResponseEntity<?> missingPart(Exception error) {
+        return ResponseEntity.badRequest().body(Map.of("code","INVALID_CHECKIN","message","请提交照片、合照与出镜信息"));
+    }
     @ExceptionHandler(RegistrationService.Failure.class)
     ResponseEntity<?> failure(RegistrationService.Failure error) {
         return ResponseEntity.status(error.status).body(Map.of("code", error.code, "message", error.getMessage()));

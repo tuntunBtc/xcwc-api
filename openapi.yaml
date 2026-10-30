@@ -1,11 +1,11 @@
 openapi: 3.0.3
 info:
   title: 燕叽实体小鸟登记 API
-  version: 0.2.0
+  version: 0.3.0
   description: 独立账号和隐藏领养码的最小登记服务。不含微信登录、支付、云端喂养和找回密码。生产环境只使用 HTTPS。
 servers:
-  - url: http://127.0.0.1:8080/api
-    description: 本地联调地址；生产用同源 HTTPS /api
+- url: http://127.0.0.1:8080/api
+  description: 本地联调地址；生产用同源 HTTPS /api
 paths:
   /health:
     get:
@@ -19,7 +19,10 @@ paths:
               schema:
                 type: object
                 properties:
-                  status: {type: string, enum: [ok]}
+                  status:
+                    type: string
+                    enum:
+                    - ok
   /auth/register:
     post:
       operationId: register
@@ -27,10 +30,14 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/Credentials'
       responses:
-        '201': {$ref: '#/components/responses/Session'}
-        '400': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '429': {$ref: '#/components/responses/Error'}
+        '201':
+          $ref: '#/components/responses/Session'
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
   /auth/login:
     post:
       operationId: login
@@ -38,22 +45,30 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/Credentials'
       responses:
-        '200': {$ref: '#/components/responses/Session'}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '429': {$ref: '#/components/responses/Error'}
+        '200':
+          $ref: '#/components/responses/Session'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
   /auth/logout:
     post:
       operationId: logout
       summary: 撤销当前令牌
-      security: [{bearer: []}]
+      security:
+      - bearer: []
       responses:
-        '204': {description: 已撤销}
-        '401': {$ref: '#/components/responses/Error'}
-        '429': {$ref: '#/components/responses/Error'}
+        '204':
+          description: 已撤销
+        '401':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
   /birds/{id}:
     parameters:
-      - $ref: '#/components/parameters/BirdId'
+    - $ref: '#/components/parameters/BirdId'
     get:
       operationId: publicBird
       summary: 查询公开款式和是否已认领，不返回主人或私密昵称
@@ -62,42 +77,60 @@ paths:
           description: 公开小鸟；name 固定为燕叽，claimedAt 为 null
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/Bird'}
-        '404': {$ref: '#/components/responses/Error'}
+              schema:
+                $ref: '#/components/schemas/Bird'
+        '404':
+          $ref: '#/components/responses/Error'
   /birds/{id}/claim:
     parameters:
-      - $ref: '#/components/parameters/BirdId'
+    - $ref: '#/components/parameters/BirdId'
     post:
       operationId: claimBird
       summary: 用隐藏领养码认领；同一账号携带正确码重试返回原记录，不改名
       description: 事务锁保证一只鸟只能被一个账号认领；不在 URL 中传领养码。错误码 INVALID_CLAIM_CODE、ALREADY_CLAIMED、LOGIN_REQUIRED。
-      security: [{bearer: []}]
+      security:
+      - bearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [code, name]
+              required:
+              - code
+              - name
               properties:
-                code: {type: string, pattern: '^[0-9a-f]{32}$', description: 包装内高熵随机隐藏码，不是公开编号}
-                name: {type: string, maxLength: 12, description: 空白使用燕叽，长度按 Java UTF-16 计数}
+                code:
+                  type: string
+                  pattern: ^[0-9a-f]{32}$
+                  description: 包装内高熵随机隐藏码，不是公开编号
+                name:
+                  type: string
+                  maxLength: 12
+                  description: 空白使用燕叽，长度按 Java UTF-16 计数
       responses:
         '200':
           description: 成功或同主人安全重试
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/Bird'}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '429': {$ref: '#/components/responses/Error'}
+              schema:
+                $ref: '#/components/schemas/Bird'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
   /me/birds:
     get:
       operationId: myBirds
       summary: 当前账号已领养的小鸟；换浏览器重新登录后仍可查询
-      security: [{bearer: []}]
+      security:
+      - bearer: []
       responses:
         '200':
           description: 仅返回当前用户所有的小鸟
@@ -105,8 +138,10 @@ paths:
             application/json:
               schema:
                 type: array
-                items: {$ref: '#/components/schemas/Bird'}
-        '401': {$ref: '#/components/responses/Error'}
+                items:
+                  $ref: '#/components/schemas/Bird'
+        '401':
+          $ref: '#/components/responses/Error'
   /me/points:
     get:
       summary: 账号共享积分余额、北京时间当日额度、下一次奖励时间
@@ -288,15 +323,187 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
+  /checkin-catalog:
+    get:
+      operationId: checkinCatalog
+      summary: 完整出镜款式目录；目录不表示拥有权益
+      responses:
+        '200':
+          description: 已登记实物款式去重；真实归属由 /me/birds 校验
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CheckinCharacter'
+  /checkins:
+    post:
+      security: &id001
+      - bearer: []
+      operationId: createCheckin
+      summary: 保存已合成照片，成功后同事务奖励 1 叽分
+      description: 1～3 个真实实体鸟 ID；服务端校验本人归属及有效图片。客户端合成并上传，不含 AI 融合或景点真实性识别。requestId
+        账号内幂等，同编号不同内容返回 409。图片先保存，作品与 CHECKIN_REWARD 在同一数据库事务结算；失败清理暂存文件。没有抚摸冷却和每日
+        10 次限制。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - metadata
+              - original
+              - image
+              properties:
+                metadata:
+                  $ref: '#/components/schemas/CheckinSubmission'
+                original:
+                  type: string
+                  format: binary
+                  description: JPEG/PNG，最大 15 MB、2400 万像素；浏览器将 WEBP 归一化为 JPEG
+                image:
+                  type: string
+                  format: binary
+                  description: 1000×1010 JPEG，最大 8 MB；与画布预览相同布局
+            encoding:
+              metadata:
+                contentType: application/json
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckinWork'
+        '400': &id002
+          $ref: '#/components/responses/Error'
+        '401': &id003
+          $ref: '#/components/responses/Error'
+        '404': &id004
+          $ref: '#/components/responses/Error'
+        '409': &id005
+          $ref: '#/components/responses/Error'
+        '413': &id006
+          $ref: '#/components/responses/Error'
+        '503': &id007
+          $ref: '#/components/responses/Error'
+  /checkins/{id}:
+    parameters:
+    - &id008
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{32}$
+    get:
+      security: *id001
+      operationId: getCheckin
+      summary: 查询本人成功作品，其他用户返回 404
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckinWork'
+        '400': *id002
+        '401': *id003
+        '404': *id004
+        '409': *id005
+        '413': *id006
+        '503': *id007
+  /checkins/{id}/image:
+    parameters:
+    - *id008
+    get:
+      security: *id001
+      operationId: checkinImage
+      summary: 获取本人成品 JPEG
+      responses:
+        '200':
+          description: 必须携带 Bearer；URL 无令牌，文件不作为静态资源公开
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        '400': *id002
+        '401': *id003
+        '404': *id004
+        '409': *id005
+        '413': *id006
+        '503': *id007
+  /checkins/{id}/original:
+    parameters:
+    - *id008
+    get:
+      security: *id001
+      operationId: checkinOriginal
+      summary: 获取本人归一化源照片
+      responses:
+        '200':
+          description: 必须携带 Bearer；URL 无令牌，文件不作为静态资源公开
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400': *id002
+        '401': *id003
+        '404': *id004
+        '409': *id005
+        '413': *id006
+        '503': *id007
+  /me/checkins:
+    get:
+      security: *id001
+      operationId: myCheckins
+      summary: 本人相册，createdAt DESC、id DESC 稳定游标分页
+      parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          maxLength: 160
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckinPage'
+        '400': *id002
+        '401': *id003
+        '404': *id004
+        '409': *id005
+        '413': *id006
+        '503': *id007
 components:
   securitySchemes:
-    bearer: {type: http, scheme: bearer, description: 随机不透明令牌，不是 JWT；数据库仅存摘要}
+    bearer:
+      type: http
+      scheme: bearer
+      description: 随机不透明令牌，不是 JWT；数据库仅存摘要
   parameters:
     BirdId:
       name: id
       in: path
       required: true
-      schema: {type: string}
+      schema:
+        type: string
       description: 32 位小写十六进制随机公开 ID；未知 ID 返回 404
   requestBodies:
     Credentials:
@@ -305,27 +512,62 @@ components:
         application/json:
           schema:
             type: object
-            required: [username, password]
+            required:
+            - username
+            - password
             properties:
-              username: {type: string, pattern: '^[a-z0-9_]{4,32}$'}
-              password: {type: string, minLength: 10, maxLength: 72, description: 同时要求 UTF-8 编码最多 72 字节；密码不可找回}
+              username:
+                type: string
+                pattern: ^[a-z0-9_]{4,32}$
+              password:
+                type: string
+                minLength: 10
+                maxLength: 72
+                description: 同时要求 UTF-8 编码最多 72 字节；密码不可找回
   schemas:
     Bird:
       type: object
-      required: [id, typeId, name, claimed, image]
+      required:
+      - id
+      - typeId
+      - name
+      - claimed
+      - image
       properties:
-        id: {type: string}
-        typeId: {type: string, example: yanji_blue}
-        name: {type: string}
-        claimed: {type: boolean}
-        claimedAt: {type: string, format: date-time, nullable: true}
-        cityCode: {type: string, example: hangzhou}
-        cityName: {type: string, example: 杭州}
-        typeName: {type: string, example: 高透白洁}
-        skinId: {type: string, example: demo_white}
-        skinName: {type: string, example: 测试白色皮肤}
-        batchNo: {type: string, example: DEMO-202610}
-        image: {type: string, example: /miniprogram/assets/bird_calm.png}
+        id:
+          type: string
+        typeId:
+          type: string
+          example: yanji_blue
+        name:
+          type: string
+        claimed:
+          type: boolean
+        claimedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cityCode:
+          type: string
+          example: hangzhou
+        cityName:
+          type: string
+          example: 杭州
+        typeName:
+          type: string
+          example: 高透白洁
+        skinId:
+          type: string
+          example: demo_white
+        skinName:
+          type: string
+          example: 测试白色皮肤
+        batchNo:
+          type: string
+          example: DEMO-202610
+        image:
+          type: string
+          example: /miniprogram/assets/bird_calm.png
     PointsRequest:
       type: object
       required:
@@ -444,6 +686,111 @@ components:
           nullable: true
           pattern: ^[a-z0-9_]{1,32}$
           description: null 或省略恢复默认外观
+    CheckinSubmission:
+      type: object
+      required:
+      - requestId
+      - birdIds
+      - styleId
+      - label
+      properties:
+        requestId:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{16,64}$
+          description: 失败原样重试沿用此 ID；不可跨操作复用
+        birdIds:
+          type: array
+          minItems: 1
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            pattern: ^[a-f0-9]{32}$
+          description: /me/birds 返回的实体 ID，不是款式或城市 ID；同款多实体可各自出镜
+        styleId:
+          type: string
+          enum:
+          - natural
+          - film
+          - soft
+          - mono
+        label:
+          type: string
+          maxLength: 20
+    CheckinCharacter:
+      type: object
+      required:
+      - key
+      - typeId
+      - cityCode
+      - skinId
+      - name
+      properties:
+        key:
+          type: string
+        typeId:
+          type: string
+        cityCode:
+          type: string
+        skinId:
+          type: string
+        name:
+          type: string
+    CheckinWork:
+      type: object
+      required:
+      - id
+      - status
+      - birdIds
+      - styleId
+      - label
+      - createdAt
+      - imageUrl
+      - originalUrl
+      - reward
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+          - SUCCEEDED
+        birdIds:
+          type: array
+          items:
+            type: string
+        styleId:
+          type: string
+        label:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        imageUrl:
+          type: string
+        originalUrl:
+          type: string
+        reward:
+          type: integer
+          enum:
+          - 1
+    CheckinPage:
+      type: object
+      required:
+      - items
+      - nextCursor
+      - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckinWork'
+        nextCursor:
+          type: string
+          nullable: true
+        total:
+          type: integer
+          format: int64
   responses:
     Session:
       description: 令牌只在创建时返回；前端使用 sessionStorage，不放 URL
@@ -451,18 +798,30 @@ components:
         application/json:
           schema:
             type: object
-            required: [token, username, expiresAt]
+            required:
+            - token
+            - username
+            - expiresAt
             properties:
-              token: {type: string, pattern: '^[0-9a-f]{64}$'}
-              username: {type: string}
-              expiresAt: {type: string, format: date-time}
+              token:
+                type: string
+                pattern: ^[0-9a-f]{64}$
+              username:
+                type: string
+              expiresAt:
+                type: string
+                format: date-time
     Error:
       description: 业务错误；429 表示应等待后重试；未知服务器错误不暴露内部信息
       content:
         application/json:
           schema:
             type: object
-            required: [code, message]
+            required:
+            - code
+            - message
             properties:
-              code: {type: string}
-              message: {type: string}
+              code:
+                type: string
+              message:
+                type: string

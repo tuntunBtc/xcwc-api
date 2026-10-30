@@ -31,3 +31,7 @@ java -jar target/xcwc.jar --server.servlet.context-path=/
 前端与部署说明目前仍在 /Users/beluga/Documents/ChatGPT/星辰；该目录的 npm run package:server 会读取本工程的构建产物。可用 XCWC_API_DIR 覆盖后端路径。
 
 服务器部署路径：/www/server/xcwc/xcwc.jar；私密配置：/etc/xcwc/backend.env。目录迁移不修改服务器数据库或线上服务。
+
+## 打卡合照
+
+新增 V4 合照迁移、受控照片上传及本人相册查询；每张成功作品通过现有账号流水奖励 1 叽分，按 requestId 幂等。部署必须设置持久的 CHECKIN_STORAGE_DIR（默认 ./data/checkins，禁止映射为静态目录）。接口见 openapi.yaml，完整联调和部署说明见 ../docs/CHECKIN-IMPLEMENTATION.md。

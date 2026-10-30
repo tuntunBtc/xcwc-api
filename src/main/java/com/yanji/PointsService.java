@@ -95,6 +95,14 @@ public class PointsService {
     public List<Entry> history(String auth, long beforeId) {
         return jdbc.query("SELECT * FROM points_ledger WHERE user_id=? AND id<? ORDER BY id DESC LIMIT 50", this::entry, registration.userId(auth), beforeId);
     }
+    // Called within the work-save transaction. Checkin rewards have no pet cooldown or daily cap.
+    @Transactional
+    public Change checkinReward(String user, String workId, String requestId) {
+        Account a = account(user, true);
+        Change prior = replay(user, requestId, "CHECKIN_REWARD", workId);
+        if (prior != null) return prior;
+        return record(user, requestId, "CHECKIN_REWARD", workId, 1, Math.addExact(a.balance(), 1), clock.instant());
+    }
     public List<Skin> skins(String auth) {
         String user = registration.userId(auth);
         return jdbc.query("SELECT s.*,CASE WHEN u.user_id IS NULL THEN FALSE ELSE TRUE END AS owned FROM skin_catalog s LEFT JOIN user_skin u ON u.skin_id=s.id AND u.user_id=? WHERE s.active=TRUE ORDER BY s.price,s.id",
