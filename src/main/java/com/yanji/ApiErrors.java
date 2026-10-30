@@ -1,0 +1,31 @@
+package com.yanji;
+
+import java.util.Map;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+
+@RestControllerAdvice
+public class ApiErrors {
+    @ExceptionHandler(RegistrationService.Failure.class)
+    ResponseEntity<?> failure(RegistrationService.Failure error) {
+        return ResponseEntity.status(error.status).body(Map.of("code", error.code, "message", error.getMessage()));
+    }
+    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    ResponseEntity<?> invalid(Exception error) {
+        return ResponseEntity.badRequest().body(Map.of("code", "INVALID_INPUT", "message", "输入格式不正确，请检查账号、密码或领养码"));
+    }
+    @ExceptionHandler({org.springframework.web.servlet.resource.NoResourceFoundException.class,
+                       org.springframework.web.servlet.NoHandlerFoundException.class})
+    ResponseEntity<?> notFound(Exception error) {
+        return ResponseEntity.status(404).body(Map.of("code", "ENDPOINT_NOT_FOUND", "message", "接口不存在，请检查请求路径"));
+    }
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<?> unexpected(Exception error) {
+        LoggerFactory.getLogger(ApiErrors.class).error("API failure: {}", error.getClass().getName());
+        return ResponseEntity.internalServerError().body(Map.of("code", "SERVICE_ERROR", "message", "服务暂时不可用，请稍后重试"));
+    }
+}

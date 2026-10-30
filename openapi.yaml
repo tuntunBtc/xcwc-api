@@ -1,0 +1,468 @@
+openapi: 3.0.3
+info:
+  title: 燕叽实体小鸟登记 API
+  version: 0.2.0
+  description: 独立账号和隐藏领养码的最小登记服务。不含微信登录、支付、云端喂养和找回密码。生产环境只使用 HTTPS。
+servers:
+  - url: http://127.0.0.1:8080/api
+    description: 本地联调地址；生产用同源 HTTPS /api
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: 进程存活检查，不保证数据库健康
+      responses:
+        '200':
+          description: 正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, enum: [ok]}
+  /auth/register:
+    post:
+      operationId: register
+      summary: 创建独立账号并登录
+      requestBody:
+        $ref: '#/components/requestBodies/Credentials'
+      responses:
+        '201': {$ref: '#/components/responses/Session'}
+        '400': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /auth/login:
+    post:
+      operationId: login
+      summary: 登录并签发七天有效的随机会话令牌
+      requestBody:
+        $ref: '#/components/requestBodies/Credentials'
+      responses:
+        '200': {$ref: '#/components/responses/Session'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: 撤销当前令牌
+      security: [{bearer: []}]
+      responses:
+        '204': {description: 已撤销}
+        '401': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /birds/{id}:
+    parameters:
+      - $ref: '#/components/parameters/BirdId'
+    get:
+      operationId: publicBird
+      summary: 查询公开款式和是否已认领，不返回主人或私密昵称
+      responses:
+        '200':
+          description: 公开小鸟；name 固定为燕叽，claimedAt 为 null
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Bird'}
+        '404': {$ref: '#/components/responses/Error'}
+  /birds/{id}/claim:
+    parameters:
+      - $ref: '#/components/parameters/BirdId'
+    post:
+      operationId: claimBird
+      summary: 用隐藏领养码认领；同一账号携带正确码重试返回原记录，不改名
+      description: 事务锁保证一只鸟只能被一个账号认领；不在 URL 中传领养码。错误码 INVALID_CLAIM_CODE、ALREADY_CLAIMED、LOGIN_REQUIRED。
+      security: [{bearer: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: {type: string, pattern: '^[0-9a-f]{32}$', description: 包装内高熵随机隐藏码，不是公开编号}
+                name: {type: string, maxLength: 12, description: 空白使用燕叽，长度按 Java UTF-16 计数}
+      responses:
+        '200':
+          description: 成功或同主人安全重试
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Bird'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /me/birds:
+    get:
+      operationId: myBirds
+      summary: 当前账号已领养的小鸟；换浏览器重新登录后仍可查询
+      security: [{bearer: []}]
+      responses:
+        '200':
+          description: 仅返回当前用户所有的小鸟
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Bird'}
+        '401': {$ref: '#/components/responses/Error'}
+  /me/points:
+    get:
+      summary: 账号共享积分余额、北京时间当日额度、下一次奖励时间
+      security:
+      - bearer: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointsWallet'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /me/points/ledger:
+    get:
+      summary: 积分流水，按 ID 倒序，每页最多 50 条；下一页传最后一条 id
+      security:
+      - bearer: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointsEntry'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: beforeId
+        in: query
+        schema:
+          type: integer
+          format: int64
+          default: 9223372036854775807
+  /skins:
+    get:
+      summary: 查询启用的通用装饰皮肤和当前账号是否已解锁
+      security:
+      - bearer: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardSkin'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /birds/{id}/pet:
+    parameters:
+    - $ref: '#/components/parameters/BirdId'
+    post:
+      summary: 抚摸自己的小鸟：+1 分，间隔 30 秒，每账号每天最多 10 分
+      security:
+      - bearer: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointsChange'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PointsRequest'
+  /skins/{id}/redeem:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    post:
+      summary: 按服务端价格扣积分并永久解锁；重复兑换不扣分
+      security:
+      - bearer: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointsChange'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PointsRequest'
+  /birds/{id}/skin:
+    parameters:
+    - $ref: '#/components/parameters/BirdId'
+    put:
+      summary: 穿戴已解锁皮肤或恢复默认；不消耗积分，不改变出厂皮肤
+      security:
+      - bearer: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Outfit'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipSkin'
+  /me/outfits:
+    get:
+      summary: 当前账号各只小鸟的穿戴状态
+      security:
+      - bearer: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Outfit'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearer: {type: http, scheme: bearer, description: 随机不透明令牌，不是 JWT；数据库仅存摘要}
+  parameters:
+    BirdId:
+      name: id
+      in: path
+      required: true
+      schema: {type: string}
+      description: 32 位小写十六进制随机公开 ID；未知 ID 返回 404
+  requestBodies:
+    Credentials:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [username, password]
+            properties:
+              username: {type: string, pattern: '^[a-z0-9_]{4,32}$'}
+              password: {type: string, minLength: 10, maxLength: 72, description: 同时要求 UTF-8 编码最多 72 字节；密码不可找回}
+  schemas:
+    Bird:
+      type: object
+      required: [id, typeId, name, claimed, image]
+      properties:
+        id: {type: string}
+        typeId: {type: string, example: yanji_blue}
+        name: {type: string}
+        claimed: {type: boolean}
+        claimedAt: {type: string, format: date-time, nullable: true}
+        cityCode: {type: string, example: hangzhou}
+        cityName: {type: string, example: 杭州}
+        typeName: {type: string, example: 高透白洁}
+        skinId: {type: string, example: demo_white}
+        skinName: {type: string, example: 测试白色皮肤}
+        batchNo: {type: string, example: DEMO-202610}
+        image: {type: string, example: /miniprogram/assets/bird_calm.png}
+    PointsRequest:
+      type: object
+      required:
+      - requestId
+      properties:
+        requestId:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{16,64}$
+          description: 客户端生成，失败重试沿用原编号；同账号不可用于不同操作。
+    PointsWallet:
+      type: object
+      required:
+      - balance
+      - date
+      - earnedToday
+      - dailyLimit
+      - nextRewardAt
+      properties:
+        balance:
+          type: integer
+          format: int64
+        date:
+          type: string
+          format: date
+        earnedToday:
+          type: integer
+        dailyLimit:
+          type: integer
+          enum:
+          - 10
+        nextRewardAt:
+          type: string
+          format: date-time
+          nullable: true
+    PointsEntry:
+      type: object
+      required:
+      - id
+      - operation
+      - targetId
+      - delta
+      - balanceAfter
+      - createdAt
+      properties:
+        id:
+          type: string
+          description: 流水游标，字符串避免 JavaScript 大整数精度问题
+        operation:
+          type: string
+          enum:
+          - PET
+          - REDEEM
+        targetId:
+          type: string
+        delta:
+          type: integer
+        balanceAfter:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    PointsChange:
+      type: object
+      required:
+      - entry
+      - replayed
+      properties:
+        entry:
+          $ref: '#/components/schemas/PointsEntry'
+        replayed:
+          type: boolean
+          description: true 为重放原结算，不代表当前余额；用 GET /me/points 刷新余额
+    RewardSkin:
+      type: object
+      required:
+      - id
+      - name
+      - price
+      - visualKey
+      - owned
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        price:
+          type: integer
+        visualKey:
+          type: string
+          enum:
+          - lake
+          - sunset
+        owned:
+          type: boolean
+    Outfit:
+      type: object
+      required:
+      - birdId
+      - skinId
+      - visualKey
+      properties:
+        birdId:
+          type: string
+        skinId:
+          type: string
+          nullable: true
+        visualKey:
+          type: string
+          nullable: true
+    EquipSkin:
+      type: object
+      properties:
+        skinId:
+          type: string
+          nullable: true
+          pattern: ^[a-z0-9_]{1,32}$
+          description: null 或省略恢复默认外观
+  responses:
+    Session:
+      description: 令牌只在创建时返回；前端使用 sessionStorage，不放 URL
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token, username, expiresAt]
+            properties:
+              token: {type: string, pattern: '^[0-9a-f]{64}$'}
+              username: {type: string}
+              expiresAt: {type: string, format: date-time}
+    Error:
+      description: 业务错误；429 表示应等待后重试；未知服务器错误不暴露内部信息
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code, message]
+            properties:
+              code: {type: string}
+              message: {type: string}
