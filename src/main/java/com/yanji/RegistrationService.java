@@ -22,12 +22,13 @@ public class RegistrationService {
     private final BCryptPasswordEncoder passwords = new BCryptPasswordEncoder(12);
     private final String dummyHash = passwords.encode("not-a-user-password");
 
-    public RegistrationService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    private final org.springframework.beans.factory.ObjectProvider<PointsService> points;
+    public RegistrationService(JdbcTemplate jdbc, org.springframework.beans.factory.ObjectProvider<PointsService> points) { this.jdbc = jdbc; this.points=points; }
 
     public record Session(String token, String username, Instant expiresAt) {}
-    public record Bird(String id, String typeId, String name, boolean claimed, Instant claimedAt, String image, String cityCode, String cityName, String typeName, String skinId, String skinName, String batchNo) {}
+    public record Bird(String id, String typeId, String name, boolean claimed, Instant claimedAt, String image, String cityCode, String cityName, String typeName, String skinId, String skinName, String batchNo, String birdCode, String ipCode, String codeCity, String imagePath, boolean active) {}
     public record Provisioned(String id, String claimCode) {}
-    private record BirdRow(String id, String typeId, String name, String claimHash, String ownerId, Timestamp claimedAt, String cityCode, String cityName, String typeName, String skinId, String skinName, String batchNo) {}
+    private record BirdRow(String id, String typeId, String name, String claimHash, String ownerId, Timestamp claimedAt, String cityCode, String cityName, String typeName, String skinId, String skinName, String batchNo, String birdCode, String ipCode, String codeCity, String imagePath, boolean active) {}
 
     public static class Failure extends RuntimeException {
         final HttpStatus status;
@@ -67,7 +68,7 @@ public class RegistrationService {
     @Transactional
     public Session login(String username, String password) {
         checkPassword(password);
-        var users = jdbc.queryForList("SELECT id,password_hash FROM app_user WHERE username=?", username);
+        var users = jdbc.queryForList("SELECT id,password_hash FROM app_user WHERE username=? AND wx_openid IS NULL", username);
         String hash = users.isEmpty() ? dummyHash : (String) users.getFirst().get("password_hash");
         boolean matches = passwords.matches(password, hash);
         if (users.isEmpty() || !matches) throw failure(HttpStatus.UNAUTHORIZED, "INVALID_LOGIN", "账号或密码不正确");
@@ -77,9 +78,56 @@ public class RegistrationService {
     private Session issueSession(String id, String username) {
         jdbc.update("DELETE FROM auth_session WHERE expires_at < ?", Timestamp.from(Instant.now()));
         String token = randomKey(32);
-        Instant expires = Instant.now().plus(7, ChronoUnit.DAYS);
+        // Match the persisted TIMESTAMP precision so login and session reads agree.
+        Instant expires = Instant.now().plus(7, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
         jdbc.update("INSERT INTO auth_session(token_hash,user_id,expires_at) VALUES(?,?,?)", digest(token), id, Timestamp.from(expires));
         return new Session(token, username, expires);
+    }
+
+    @org.springframework.beans.factory.annotation.Value("${app.wx.app-id:}")
+    private String wxAppId;
+    @org.springframework.beans.factory.annotation.Value("${app.wx.legacy-app-id:}")
+    private String legacyAppId;
+
+    public String ensureUserByOpenid(String openid) {
+        return ensureWechatUser(wxAppId, openid);
+    }
+
+    String ensureWechatUser(String appId, String openid) {
+        if (appId == null || !appId.matches("[A-Za-z0-9_-]{1,64}") || openid == null || openid.isBlank()
+                || openid.codePointCount(0, openid.length()) > 64
+                || !StandardCharsets.UTF_8.newEncoder().canEncode(openid)) {
+            throw failure(HttpStatus.UNAUTHORIZED, "WX_LOGIN_FAILED", "Invalid WeChat identity");
+        }
+        byte[] app = appId.getBytes(StandardCharsets.UTF_8);
+        byte[] identity = openid.getBytes(StandardCharsets.UTF_8);
+        var rows = jdbc.queryForList("SELECT id FROM app_user WHERE wx_appid=? AND wx_openid=?", app, identity);
+        if (!rows.isEmpty()) return (String) rows.getFirst().get("id");
+        var legacy = jdbc.queryForList("SELECT id FROM app_user WHERE wx_appid IS NULL AND wx_openid=? FOR UPDATE", identity);
+        if (!legacy.isEmpty()) {
+            if (!appId.equals(legacyAppId) || legacy.size() != 1)
+                throw failure(HttpStatus.SERVICE_UNAVAILABLE, "WX_IDENTITY_MIGRATION_REQUIRED", "Legacy WeChat AppID must be verified");
+            String id = (String) legacy.getFirst().get("id");
+            jdbc.update("UPDATE app_user SET wx_appid=? WHERE id=? AND wx_appid IS NULL", app, id);
+            return id;
+        }
+        String id = randomKey(16);
+        String username = "wx_" + digest(appId + ":" + openid).substring(0, 29);
+        try {
+            jdbc.update("INSERT INTO app_user(id,username,password_hash,wx_appid,wx_openid,created_at) VALUES(?,?,?,?,?,?)",
+                id, username, dummyHash, app, identity, Timestamp.from(Instant.now()));
+        } catch (DuplicateKeyException error) {
+            rows = jdbc.queryForList("SELECT id FROM app_user WHERE wx_appid=? AND wx_openid=?", app, identity);
+            if (!rows.isEmpty()) return (String) rows.getFirst().get("id");
+            throw error;
+        }
+        return id;
+    }
+
+    /** 为已存在的用户下发登录令牌（微信登录复用账号体系）。 */
+    public Session issueSessionForUser(String userId) {
+        String username = jdbc.queryForObject("SELECT username FROM app_user WHERE id=?", String.class, userId);
+        return issueSession(userId, username);
     }
 
     String userId(String authorization) {
@@ -95,43 +143,93 @@ public class RegistrationService {
     }
 
     private BirdRow row(java.sql.ResultSet result, int rowNumber) throws java.sql.SQLException {
-        return new BirdRow(result.getString("id"), result.getString("type_id"), result.getString("name"), result.getString("claim_hash"), result.getString("owner_id"), result.getTimestamp("claimed_at"), result.getString("city_code"), result.getString("city_name"), result.getString("type_name"), result.getString("skin_id"), result.getString("skin_name"), result.getString("batch_no"));
+        return new BirdRow(result.getString("id"), result.getString("type_id"), result.getString("name"), result.getString("claim_hash"), result.getString("owner_id"), result.getTimestamp("claimed_at"), result.getString("city_code"), result.getString("city_name"), result.getString("type_name"), result.getString("skin_id"), result.getString("skin_name"), result.getString("batch_no"), result.getString("bird_code"), result.getString("ip_code"), result.getString("code_city"), result.getString("image_path"), result.getBoolean("active"));
     }
 
     private Bird view(BirdRow bird) {
-        return new Bird(bird.id(), bird.typeId(), bird.name(), bird.ownerId() != null, bird.claimedAt() == null ? null : bird.claimedAt().toInstant(), "/miniprogram/assets/bird_calm.png", bird.cityCode(), bird.cityName(), bird.typeName(), bird.skinId(), bird.skinName(), bird.batchNo());
+        return new Bird(bird.id(), bird.typeId(), bird.name(), bird.ownerId() != null, bird.claimedAt() == null ? null : bird.claimedAt().toInstant(), bird.imagePath(), bird.cityCode(), bird.cityName(), bird.typeName(), bird.skinId(), bird.skinName(), bird.batchNo(), bird.birdCode(), bird.ipCode(), bird.codeCity(), bird.imagePath(), bird.active());
     }
 
     public Bird find(String id) {
         var birds = jdbc.query("SELECT * FROM bird WHERE id=?", this::row, id);
         if (birds.isEmpty()) throw failure(HttpStatus.NOT_FOUND, "BIRD_NOT_FOUND", "没有找到这只小鸟，请检查链接");
-        BirdRow bird = birds.getFirst();
-        return new Bird(bird.id(), bird.typeId(), "燕叽", bird.ownerId() != null, null, "/miniprogram/assets/bird_calm.png", bird.cityCode(), bird.cityName(), bird.typeName(), bird.skinId(), bird.skinName(), bird.batchNo());
+        return publicBird(birds.getFirst());
     }
 
+    private Bird publicBird(BirdRow bird) {
+        requireActive(bird);
+        return new Bird(bird.id(), bird.typeId(), bird.birdCode() == null ? "燕叽" : bird.typeName(), false, null, bird.imagePath(), bird.cityCode(), bird.cityName(), bird.typeName(), bird.skinId(), bird.skinName(), bird.batchNo(), bird.birdCode(), bird.ipCode(), bird.codeCity(), bird.imagePath(), bird.active());
+    }
+
+    private void requireActive(BirdRow bird) {
+        if (!bird.active()) throw failure(HttpStatus.GONE, "BIRD_INACTIVE", "这只实体小鸟已停用，请联系工作人员");
+    }
+
+    public Bird findByCode(String code) {
+        BirdCodes.validate(code);
+        var birds = jdbc.query("SELECT * FROM bird WHERE bird_code=?", this::row, code);
+        if (birds.isEmpty()) throw failure(HttpStatus.NOT_FOUND, "BIRD_NOT_FOUND", "没有找到这只小鸟，请检查完整编码");
+        return publicBird(birds.getFirst());
+    }
+
+    private Bird bindingBird(java.sql.ResultSet r, int n) throws java.sql.SQLException {
+        BirdRow b=row(r,n);
+        return new Bird(b.id(),b.typeId(),r.getString("binding_name"),true,r.getTimestamp("binding_at").toInstant(),b.imagePath(),
+            b.cityCode(),b.cityName(),b.typeName(),b.skinId(),b.skinName(),b.batchNo(),b.birdCode(),b.ipCode(),b.codeCity(),b.imagePath(),b.active());
+    }
     public List<Bird> mine(String authorization) {
-        return jdbc.query("SELECT * FROM bird WHERE owner_id=? ORDER BY claimed_at DESC,id", this::row, userId(authorization)).stream().map(this::view).toList();
+        return jdbc.query("SELECT b.*,bb.nickname AS binding_name,bb.created_at AS binding_at FROM bird_binding bb JOIN bird b ON b.id=bb.bird_id WHERE bb.user_id=? ORDER BY bb.created_at DESC,b.id",this::bindingBird,userId(authorization));
     }
-
-    @Transactional
-    public Bird claim(String authorization, String id, String code, String name) {
-        String user = userId(authorization);
-        var birds = jdbc.query("SELECT * FROM bird WHERE id=? FOR UPDATE", this::row, id);
-        if (birds.isEmpty()) throw failure(HttpStatus.NOT_FOUND, "BIRD_NOT_FOUND", "没有找到这只小鸟");
-        BirdRow bird = birds.getFirst();
-        if (!MessageDigest.isEqual(digest(code).getBytes(StandardCharsets.US_ASCII), bird.claimHash().getBytes(StandardCharsets.US_ASCII))) {
-            throw failure(HttpStatus.BAD_REQUEST, "INVALID_CLAIM_CODE", "领养码不正确");
+    public record Binding(String birdId, boolean bound, String bindingId, String nickname, String eggId, String eggStatus, Instant hatchedAt) {}
+    public Binding binding(String auth,String birdId) { return bindingFor(userId(auth),birdId); }
+    private Binding bindingFor(String user,String birdId) {
+        var rows=jdbc.query("SELECT * FROM bird_binding WHERE user_id=? AND bird_id=? FOR UPDATE",(r,n)->
+            new Binding(birdId,true,r.getString("id"),r.getString("nickname"),r.getString("id"),"HATCHED",r.getTimestamp("hatched_at").toInstant()),user,birdId);
+        return rows.isEmpty()?new Binding(birdId,false,null,null,null,null,null):rows.getFirst();
+    }
+    public record CurrentSession(String userId,String username,Instant expiresAt) {}
+    public CurrentSession session(String auth) {
+        String user=userId(auth);
+        return jdbc.queryForObject("SELECT u.username,s.expires_at FROM auth_session s JOIN app_user u ON u.id=s.user_id WHERE s.token_hash=?",
+            (r,n)->new CurrentSession(user,r.getString(1),r.getTimestamp(2).toInstant()),digest(auth.substring(7)));
+    }
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public Binding adopt(String auth,String birdId,String requestId,String name) {
+        String user=userId(auth);
+        jdbc.queryForObject("SELECT id FROM app_user WHERE id=? FOR UPDATE",String.class,user);
+        if(requestId==null||!requestId.matches("[A-Za-z0-9_-]{16,64}"))throw failure(HttpStatus.BAD_REQUEST,"INVALID_REQUEST_ID","请提供有效请求编号");
+        if(name==null)throw failure(HttpStatus.BAD_REQUEST,"INVALID_NAME","请输入 1～6 个字的昵称");
+        String nickname=name.strip();int length=nickname.codePointCount(0,nickname.length());
+        if(length<1||length>6||nickname.codePoints().anyMatch(Character::isISOControl))throw failure(HttpStatus.BAD_REQUEST,"INVALID_NAME","请输入 1～6 个字的昵称");
+        var prior=jdbc.queryForList("SELECT bird_id,adoption_name FROM bird_binding WHERE user_id=? AND request_id=?",user,requestId);
+        if(!prior.isEmpty()&&(!birdId.equals(prior.getFirst().get("bird_id"))||!nickname.equals(prior.getFirst().get("adoption_name"))))
+            throw failure(HttpStatus.CONFLICT,"IDEMPOTENCY_CONFLICT","同一请求编号不能用于不同领养内容");
+        var birds=jdbc.query("SELECT * FROM bird WHERE id=? FOR UPDATE",this::row,birdId);
+        if(birds.isEmpty())throw failure(HttpStatus.NOT_FOUND,"BIRD_NOT_FOUND","没有找到这只小鸟");
+        requireActive(birds.getFirst());
+        var existing=jdbc.queryForList("SELECT id FROM bird_binding WHERE user_id=? AND bird_id=? FOR UPDATE",user,birdId);
+        if(!existing.isEmpty())return bindingFor(user,birdId);
+        var publications=jdbc.queryForList("SELECT r.payload FROM content_workspace w JOIN content_release r ON r.id=w.published_id WHERE w.id=1",String.class);
+        var roles=jdbc.queryForList("SELECT character_id FROM content_entity WHERE bird_id=?",String.class,birdId);
+        if(!roles.isEmpty()&&!publications.isEmpty()){
+            try{var config=new com.fasterxml.jackson.databind.ObjectMapper().readTree(publications.getFirst());boolean enabled=false;for(var role:config.path("characters"))if(role.path("id").asText().equals(roles.getFirst()))enabled=role.path("adoptionEnabled").asBoolean();
+                if(!enabled)throw failure(HttpStatus.CONFLICT,"CHARACTER_ADOPTION_CLOSED","该角色暂不开放新领养");
+            }catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalStateException(e);}
         }
-        if (bird.ownerId() != null) {
-            if (bird.ownerId().equals(user)) return view(bird);
-            throw failure(HttpStatus.CONFLICT, "ALREADY_CLAIMED", "这只小鸟已经被认领");
+        Instant now=Instant.now();String id=randomKey(16);
+        jdbc.update("INSERT INTO bird_binding(id,user_id,bird_id,nickname,adoption_name,request_id,created_at,hatched_at) VALUES(?,?,?,?,?,?,?,?)",
+            id,user,birdId,nickname,nickname,requestId,Timestamp.from(now),Timestamp.from(now));
+        if(!jdbc.queryForObject("SELECT initial_reward_received FROM app_user WHERE id=? FOR UPDATE",Boolean.class,user)) {
+            points.getObject().welcome(user,id);
+            jdbc.update("UPDATE app_user SET initial_reward_received=TRUE WHERE id=?",user);
         }
-        Instant now = Instant.now();
-        String nickname = name.strip();
-        if (nickname.isEmpty()) nickname = "燕叽";
-        int changed = jdbc.update("UPDATE bird SET owner_id=?,name=?,claimed_at=? WHERE id=? AND owner_id IS NULL", user, nickname, Timestamp.from(now), id);
-        if (changed != 1) throw failure(HttpStatus.CONFLICT, "ALREADY_CLAIMED", "这只小鸟已经被认领");
-        return new Bird(id, bird.typeId(), nickname, true, now, "/miniprogram/assets/bird_calm.png", bird.cityCode(), bird.cityName(), bird.typeName(), bird.skinId(), bird.skinName(), bird.batchNo());
+        return bindingFor(user,birdId);
+    }
+    /** Compatibility adapter. Hidden codes are no longer required or used. */
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public Bird claim(String auth,String id,String ignoredCode,String name) {
+        adopt(auth,id,"legacy_adopt_"+id,name);
+        return jdbc.queryForObject("SELECT b.*,bb.nickname AS binding_name,bb.created_at AS binding_at FROM bird_binding bb JOIN bird b ON b.id=bb.bird_id WHERE bb.user_id=? AND bb.bird_id=? FOR UPDATE",this::bindingBird,userId(auth),id);
     }
 
     @Transactional

@@ -15,21 +15,25 @@ public class RequestGuard extends OncePerRequestFilter {
     private final Map<String, Integer> counts = new HashMap<>();
     private long minute;
 
-    private synchronized boolean permit(String ip) {
+    private synchronized boolean permit(String ip, int limit) {
         long current = System.currentTimeMillis() / 60000;
         if (current != minute) { counts.clear(); minute = current; }
         if (counts.size() >= 10000 && !counts.containsKey(ip)) return false;
-        return counts.merge(ip, 1, Integer::sum) <= 20;
+        return counts.merge(ip, 1, Integer::sum) <= limit;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("X-Content-Type-Options", "nosniff");
-        boolean limited = request.getRequestURI().startsWith("/api/auth/") || request.getRequestURI().endsWith("/claim");
+        String route = request.getRequestURI();
+        boolean cloud = request.getMethod().equals("POST") && route.startsWith("/api/me/pets/");
+        boolean limited = cloud || route.endsWith("/claim") || route.endsWith("/adopt") ||
+            (request.getMethod().equals("POST") && (route.startsWith("/api/auth/") || route.equals("/api/admin/login") ||
+                route.equals("/api/checkins") || route.equals("/api/supplies/preview")));
         String ip = request.getRemoteAddr();
         if ((ip.equals("127.0.0.1") || ip.equals("0:0:0:0:0:0:0:1")) && request.getHeader("X-Real-IP") != null) ip = request.getHeader("X-Real-IP");
-        if (limited && !permit(ip)) {
+        if (limited && !permit((cloud ? "cloud:" : "legacy:") + ip, cloud ? 120 : 20)) {
             response.setStatus(429);
             response.setHeader("Retry-After", "60");
             response.setContentType("application/json;charset=UTF-8");

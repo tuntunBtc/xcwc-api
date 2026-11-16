@@ -36,11 +36,12 @@ class PointsTest {
     void time(Instant t) { now=t; when(clock.instant()).thenReturn(t); }
     void advance(long seconds) { time(now.plusSeconds(seconds)); }
     @BeforeEach void setup() {
-        jdbc.update("DELETE FROM points_ledger"); jdbc.update("DELETE FROM user_skin");
+        jdbc.update("DELETE FROM checkin_work"); jdbc.update("DELETE FROM checkin_reward_source"); jdbc.update("DELETE FROM checkin_reward_day"); jdbc.update("DELETE FROM bird_binding"); jdbc.update("DELETE FROM points_ledger"); jdbc.update("DELETE FROM user_skin");
         jdbc.update("DELETE FROM bird"); jdbc.update("DELETE FROM auth_session"); jdbc.update("DELETE FROM app_user");
         var session=registration.register("points_owner", "password-12345");
         auth="Bearer "+session.token(); user=registration.userId(auth);
         other="Bearer "+registration.register("points_other", "password-12345").token();
+        jdbc.update("UPDATE app_user SET initial_reward_received=TRUE");
         var a=registration.provision(); var b=registration.provision();
         bird=a.id(); bird2=b.id();
         registration.claim(auth,bird,a.claimCode(),"第一只"); registration.claim(auth,bird2,b.claimCode(),"第二只");

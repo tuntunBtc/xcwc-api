@@ -20,7 +20,10 @@ public class ApiErrors {
     }
     @ExceptionHandler(RegistrationService.Failure.class)
     ResponseEntity<?> failure(RegistrationService.Failure error) {
-        return ResponseEntity.status(error.status).body(Map.of("code", error.code, "message", error.getMessage()));
+        var response=ResponseEntity.status(error.status);
+        if(error.status.value()==401)
+            response.header("WWW-Authenticate", "Bearer realm=\""+("ADMIN_LOGIN_REQUIRED".equals(error.code)?"xcwc-admin":"xcwc")+"\"");
+        return response.body(Map.of("code", error.code, "message", error.getMessage()));
     }
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
     ResponseEntity<?> invalid(Exception error) {
@@ -30,6 +33,16 @@ public class ApiErrors {
                        org.springframework.web.servlet.NoHandlerFoundException.class})
     ResponseEntity<?> notFound(Exception error) {
         return ResponseEntity.status(404).body(Map.of("code", "ENDPOINT_NOT_FOUND", "message", "接口不存在，请检查请求路径"));
+    }
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<?> method(org.springframework.web.HttpRequestMethodNotSupportedException error) {
+        return ResponseEntity.status(405).allow(error.getSupportedHttpMethods().toArray(org.springframework.http.HttpMethod[]::new))
+            .body(Map.of("code","METHOD_NOT_ALLOWED","message","请求方法不支持"));
+    }
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<?> mediaType(org.springframework.web.HttpMediaTypeNotSupportedException error) {
+        return ResponseEntity.status(415)
+            .body(Map.of("code","UNSUPPORTED_MEDIA_TYPE","message","请求内容类型不支持，请按接口要求提交 JSON 或表单"));
     }
     @ExceptionHandler(Exception.class)
     ResponseEntity<?> unexpected(Exception error) {

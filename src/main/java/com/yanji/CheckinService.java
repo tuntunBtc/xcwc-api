@@ -39,7 +39,7 @@ public class CheckinService {
                           ObjectMapper json, PlatformTransactionManager manager,
                           @Value("${app.checkins.directory:./data/checkins}") String directory) {
         this.jdbc=jdbc; this.registration=registration; this.points=points; this.clock=clock; this.json=json;
-        this.tx=new TransactionTemplate(manager); this.storage=Path.of(directory).toAbsolutePath().normalize();
+        this.tx=new TransactionTemplate(manager); this.tx.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_READ_COMMITTED); this.storage=Path.of(directory).toAbsolutePath().normalize();
     }
     private RegistrationService.Failure fail(HttpStatus status, String code, String message) {
         return new RegistrationService.Failure(status,code,message);
@@ -53,7 +53,7 @@ public class CheckinService {
         String id=r.getString("id");
         return new Row(new Work(id,"SUCCEEDED",List.of(r.getString("bird_ids").split(",")),r.getString("style_id"),
             r.getString("label"),r.getTimestamp("created_at").toInstant(),"/api/checkins/"+id+"/image",
-            "/api/checkins/"+id+"/original",1),r.getString("fingerprint"),r.getString("original_path"),
+            "/api/checkins/"+id+"/original",r.getInt("reward_amount")),r.getString("fingerprint"),r.getString("original_path"),
             r.getString("result_path"),r.getString("original_type"));
     }
     private Row owned(String user,String id) {
@@ -109,7 +109,16 @@ public class CheckinService {
         try {var digest=MessageDigest.getInstance("SHA-256");for(byte[] p:parts){digest.update(java.nio.ByteBuffer.allocate(4).putInt(p.length).array());digest.update(p);}return HexFormat.of().formatHex(digest.digest());}
         catch(Exception e){throw new IllegalStateException(e);}
     }
+    private final java.util.concurrent.Semaphore uploads=new java.util.concurrent.Semaphore(2);
+    public record Creation(Work work, boolean created) {}
     public Work create(String auth,Submission request,MultipartFile original,MultipartFile result) {
+        return createResponse(auth,request,original,result).work();
+    }
+    public Creation createResponse(String auth,Submission request,MultipartFile original,MultipartFile result) {
+        if(!uploads.tryAcquire())throw fail(HttpStatus.TOO_MANY_REQUESTS,"CHECKIN_BUSY","照片处理中，请稍后原样重试");
+        try{return createAccepted(auth,request,original,result);}finally{uploads.release();}
+    }
+    private Creation createAccepted(String auth,Submission request,MultipartFile original,MultipartFile result) {
         String user=registration.userId(auth);
         if(request==null||request.requestId()==null||!request.requestId().matches("[A-Za-z0-9_-]{16,64}")||
            request.birdIds()==null||request.birdIds().isEmpty()||request.birdIds().size()>3||
@@ -119,9 +128,10 @@ public class CheckinService {
            request.label()==null||request.label().length()>20)
             throw fail(HttpStatus.BAD_REQUEST,"INVALID_CHECKIN","请选择 1～3 只不同的小鸟，并检查地点和风格");
         // Use the real entity IDs returned by /me/birds; catalogue entries never convey ownership.
-        Set<String> mine=new HashSet<>(registration.mine(auth).stream().map(RegistrationService.Bird::id).toList());
+        Set<String> mine=new HashSet<>(registration.mine(auth).stream().filter(RegistrationService.Bird::active).map(RegistrationService.Bird::id).toList());
         if(!mine.containsAll(request.birdIds()))throw fail(HttpStatus.NOT_FOUND,"OWNED_BIRD_NOT_FOUND","只能选择你已领养的小鸟");
         byte[] source=validateImage(original,false),output=validateImage(result,true);
+        String contentHash=sha(source);
         String fingerprint;
         try {fingerprint=sha(json.writeValueAsBytes(request),source,output);}catch(IOException e){throw new IllegalStateException(e);}
         String id=UUID.randomUUID().toString().replace("-","");String sourceFile=id+"-original",resultFile=id+"-result";
@@ -137,16 +147,50 @@ public class CheckinService {
                     if(!prior.getFirst().fingerprint().equals(fingerprint))throw fail(HttpStatus.CONFLICT,"IDEMPOTENCY_CONFLICT","同一请求编号不能用于不同合照");
                     return prior.getFirst().work();
                 }
+                if(!jdbc.queryForList("SELECT id FROM points_ledger WHERE user_id=? AND request_id=? FOR UPDATE",user,request.requestId()).isEmpty())
+                    throw fail(HttpStatus.CONFLICT,"IDEMPOTENCY_CONFLICT","请求编号已用于其他积分操作");
                 Instant now=clock.instant().truncatedTo(ChronoUnit.MILLIS);
                 String type=(source[0]==(byte)0x89)?"image/png":"image/jpeg";
-                jdbc.update("INSERT INTO checkin_work(id,user_id,request_id,fingerprint,bird_ids,style_id,label,original_path,result_path,original_type,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                    id,user,request.requestId(),fingerprint,String.join(",",request.birdIds()),request.styleId(),request.label().isBlank()?"在路上":request.label(),sourceFile,resultFile,type,Timestamp.from(now));
-                points.checkinReward(user,id,request.requestId());
+                jdbc.update("INSERT INTO checkin_work(id,user_id,request_id,fingerprint,bird_ids,style_id,label,original_path,result_path,original_type,created_at,source_hash,reward_amount) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    id,user,request.requestId(),fingerprint,String.join(",",request.birdIds()),request.styleId(),request.label().isBlank()?"在路上":request.label(),sourceFile,resultFile,type,Timestamp.from(now),contentHash,0);
+                boolean legacyReady=backfillSources(user);
+                LocalDate date=now.atZone(ZoneId.of("Asia/Shanghai")).toLocalDate();
+                var days=jdbc.queryForList("SELECT rewarded FROM checkin_reward_day WHERE user_id=? AND reward_date=? FOR UPDATE",user,date);
+                int count;
+                if(days.isEmpty()) {
+                    Instant from=date.atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant();
+                    Instant to=date.plusDays(1).atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant();
+                    count=jdbc.query("SELECT reward_amount FROM checkin_work WHERE user_id=? AND created_at>=? AND created_at<? AND id<>? FOR UPDATE",
+                        (r,n)->r.getInt(1),user,Timestamp.from(from),Timestamp.from(to),id).stream().mapToInt(Integer::intValue).sum();
+                    jdbc.update("INSERT INTO checkin_reward_day(user_id,reward_date,rewarded) VALUES(?,?,?)",user,date,count);
+                } else count=((Number)days.getFirst().get("rewarded")).intValue();
+                boolean seen=!jdbc.queryForList("SELECT source_hash FROM checkin_reward_source WHERE user_id=? AND source_hash=? FOR UPDATE",user,contentHash).isEmpty();
+                int reward=legacyReady&&!seen&&count<3?1:0;
+                jdbc.update("UPDATE checkin_work SET source_hash=?,reward_amount=? WHERE id=?",contentHash,reward,id);
+                if(reward==1) {
+                    jdbc.update("INSERT INTO checkin_reward_source(user_id,source_hash) VALUES(?,?)",user,contentHash);
+                    jdbc.update("UPDATE checkin_reward_day SET rewarded=rewarded+1 WHERE user_id=? AND reward_date=?",user,date);
+                    points.checkinReward(user,id,request.requestId());
+                }
                 return owned(user,id).work();
             });
-            keep=Objects.requireNonNull(work).id().equals(id);return work;
+            keep=Objects.requireNonNull(work).id().equals(id);return new Creation(work,keep);
         } catch(IOException e){throw fail(HttpStatus.SERVICE_UNAVAILABLE,"CHECKIN_SAVE_FAILED","图片保存未完成，未增加叽分，请重试");}
         finally {if(!keep){delete(sourceFile);delete(resultFile);}}
+    }
+    private boolean backfillSources(String user) {
+        boolean complete=true;
+        var old=jdbc.queryForList("SELECT id,original_path,reward_amount FROM checkin_work WHERE user_id=? AND source_hash IS NULL FOR UPDATE",user);
+        for(var row:old) {
+            try {
+                String hash=sha(Files.readAllBytes(storage.resolve((String)row.get("original_path"))));
+                jdbc.update("UPDATE checkin_work SET source_hash=? WHERE id=?",hash,row.get("id"));
+                if(((Number)row.get("reward_amount")).intValue()>0 && jdbc.queryForList("SELECT source_hash FROM checkin_reward_source WHERE user_id=? AND source_hash=? FOR UPDATE",user,hash).isEmpty())
+                    jdbc.update("INSERT INTO checkin_reward_source(user_id,source_hash) VALUES(?,?)",user,hash);
+            } catch(IOException e) { complete=false; }
+        }
+        // Missing legacy originals never grant a speculative reward; saving still succeeds.
+        return complete;
     }
     private void delete(String file){try{Files.deleteIfExists(storage.resolve(file));}catch(IOException e){org.slf4j.LoggerFactory.getLogger(getClass()).warn("Checkin staging file requires cleanup: {}",file);}}
 }

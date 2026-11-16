@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "id": "hangzhou-xihu",
+      "title": "西湖小鸟毛绒",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/hangzhou-xihu/cover-480.c0a88c859a03.webp",
+      "detailImageUrl": "/assets/shop/products/hangzhou-xihu/detail-optimized.6f9fcd2fc201.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "sortOrder": 10,
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.12134344528710726,
+        "width": 0.9671361502347418,
+        "height": 0.838569880823402
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.8856589147286822,
+        "width": 0.8398058252427184,
+        "height": 0.07751937984496124
+      }
+    },
+    {
+      "id": "hangzhou-guihua",
+      "title": "桂花小鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30901/cover-480.ec56e2ccffd8.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30901/detail-optimized.594a444d9c50.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "sortOrder": 20,
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.12134344528710726,
+        "width": 0.9671361502347418,
+        "height": 0.838569880823402
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.8856589147286822,
+        "width": 0.8398058252427184,
+        "height": 0.07751937984496124
+      },
+      "closeHotspot": {
+        "left": 0.837378640776699,
+        "top": 0.05555555555555555,
+        "width": 0.08495145631067962,
+        "height": 0.04521963824289406
+      }
+    },
+    {
+      "id": "suzhou-fengyin",
+      "title": "枫音雀",
+      "cityCode": "suzhou",
+      "cityName": "苏州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30904/cover-480.a88b0d1e2cf3.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30904/detail-optimized.e739ce12fa61.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "sortOrder": 30,
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.12134344528710726,
+        "width": 0.9671361502347418,
+        "height": 0.8450704225352113
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.8910256410256411,
+        "width": 0.8398058252427184,
+        "height": 0.07692307692307693
+      },
+      "closeHotspot": {
+        "left": 0.837378640776699,
+        "top": 0.05512820512820513,
+        "width": 0.08495145631067962,
+        "height": 0.04487179487179487
+      }
+    },
+    {
+      "id": "luoyang-qingyu",
+      "title": "青羽鸾鸟",
+      "cityCode": "luoyang",
+      "cityName": "洛阳",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30899/cover-480.404136e1b58e.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30899/detail-optimized.78686458d251.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "sortOrder": 40,
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.12134344528710726,
+        "width": 0.9671361502347418,
+        "height": 0.838569880823402
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.8856589147286822,
+        "width": 0.8398058252427184,
+        "height": 0.07751937984496124
+      },
+      "closeHotspot": {
+        "left": 0.837378640776699,
+        "top": 0.05555555555555555,
+        "width": 0.08495145631067962,
+        "height": 0.04521963824289406
+      }
+    },
+    {
+      "id": "hangzhou-hehua",
+      "title": "荷花鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30890/cover-480.df225746b34b.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30890/detail-optimized.681a6e3c672b.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.018779342723004695,
+        "top": 0.11863488624052004,
+        "width": 0.9624413145539906,
+        "height": 0.8353196099674973
+      },
+      "cartHotspot": {
+        "left": 0.08048780487804878,
+        "top": 0.8897535667963683,
+        "width": 0.8414634146341463,
+        "height": 0.07457846952010376
+      },
+      "closeHotspot": {
+        "left": 0.8317073170731707,
+        "top": 0.054474708171206226,
+        "width": 0.1,
+        "height": 0.05317769130998703
+      },
+      "sortOrder": 50
+    },
+    {
+      "id": "hangzhou-jiangnan-lingyu",
+      "title": "江南灵羽",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30891/cover-480.75686fcd2884.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30891/detail-optimized.e27bab71770a.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.018779342723004695,
+        "top": 0.11917659804983749,
+        "width": 0.9624413145539906,
+        "height": 0.8342361863488624
+      },
+      "cartHotspot": {
+        "left": 0.08170731707317073,
+        "top": 0.8922077922077922,
+        "width": 0.8414634146341463,
+        "height": 0.07077922077922078
+      },
+      "closeHotspot": {
+        "left": 0.8317073170731707,
+        "top": 0.05454545454545454,
+        "width": 0.1,
+        "height": 0.053246753246753244
+      },
+      "sortOrder": 60
+    },
+    {
+      "id": "hangzhou-dingsheng-pengpeng",
+      "title": "定胜鹏鹏鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30892/cover-480.61d0a6cc2554.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30892/detail-optimized.48f9c4327ffd.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.004694835680751174,
+        "top": 0.08992416034669556,
+        "width": 0.9906103286384976,
+        "height": 0.8645720476706392
+      },
+      "cartHotspot": {
+        "left": 0.09123222748815166,
+        "top": 0.899749373433584,
+        "width": 0.8234597156398105,
+        "height": 0.06578947368421052
+      },
+      "closeHotspot": {
+        "left": 0.8127962085308057,
+        "top": 0.07268170426065163,
+        "width": 0.10900473933649289,
+        "height": 0.05764411027568922
+      },
+      "sortOrder": 70
+    },
+    {
+      "id": "taizhou-jianke",
+      "title": "剑客小鸟",
+      "cityCode": "taizhou",
+      "cityName": "台州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30893/cover-480.bff2921bfb7f.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30893/detail-optimized.a1ca16287a1e.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.009389671361502348,
+        "top": 0.09588299024918744,
+        "width": 0.9812206572769953,
+        "height": 0.8580715059588299
+      },
+      "cartHotspot": {
+        "left": 0.08492822966507177,
+        "top": 0.8983585858585859,
+        "width": 0.8313397129186603,
+        "height": 0.06691919191919192
+      },
+      "closeHotspot": {
+        "left": 0.8169856459330144,
+        "top": 0.07133838383838384,
+        "width": 0.11004784688995216,
+        "height": 0.05808080808080808
+      },
+      "sortOrder": 80
+    },
+    {
+      "id": "shaoxing-jiaoji",
+      "title": "角鸡",
+      "cityCode": "shaoxing",
+      "cityName": "绍兴",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30894/cover-480.f3c0e2499f90.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30894/detail-optimized.5624b9504ded.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.007042253521126761,
+        "top": 0.09209100758396534,
+        "width": 0.9859154929577465,
+        "height": 0.861863488624052
+      },
+      "cartHotspot": {
+        "left": 0.08571428571428572,
+        "top": 0.8981772470144563,
+        "width": 0.8297619047619048,
+        "height": 0.06976744186046512
+      },
+      "closeHotspot": {
+        "left": 0.8130952380952381,
+        "top": 0.06976744186046512,
+        "width": 0.11190476190476191,
+        "height": 0.0590823381521056
+      },
+      "sortOrder": 90
+    },
+    {
+      "id": "hangzhou-taohua",
+      "title": "桃花鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30895/cover-480.d6eef758e52f.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30895/detail-optimized.c3ad8b1ab137.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.007042253521126761,
+        "top": 0.10292524377031419,
+        "width": 0.9859154929577465,
+        "height": 0.8510292524377031
+      },
+      "cartHotspot": {
+        "left": 0.0880952380952381,
+        "top": 0.8968809675366008,
+        "width": 0.825,
+        "height": 0.06874602164226608
+      },
+      "closeHotspot": {
+        "left": 0.8166666666666667,
+        "top": 0.06556333545512412,
+        "width": 0.10833333333333334,
+        "height": 0.05792488860598345
+      },
+      "sortOrder": 100
+    },
+    {
+      "id": "hangzhou-taozhi-cuiniao",
+      "title": "桃枝翠鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30896/cover-480.e51d6b8c2d4b.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30896/detail-optimized.af8bf327c5da.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.023474178403755867,
+        "top": 0.1094257854821235,
+        "width": 0.9530516431924883,
+        "height": 0.8412784398699892
+      },
+      "cartHotspot": {
+        "left": 0.07512315270935961,
+        "top": 0.8995492594977463,
+        "width": 0.853448275862069,
+        "height": 0.07083065035415326
+      },
+      "closeHotspot": {
+        "left": 0.8288177339901478,
+        "top": 0.06761107533805538,
+        "width": 0.09852216748768473,
+        "height": 0.051513200257566
+      },
+      "sortOrder": 110
+    },
+    {
+      "id": "hangzhou-dongpo",
+      "title": "东坡鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30897/cover-480.7cb3b71f981e.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30897/detail-optimized.69e47cb2cff2.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.12134344528710726,
+        "width": 0.9671361502347418,
+        "height": 0.838569880823402
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.8856589147286822,
+        "width": 0.8398058252427184,
+        "height": 0.07751937984496124
+      },
+      "closeHotspot": {
+        "left": 0.837378640776699,
+        "top": 0.05555555555555555,
+        "width": 0.08495145631067962,
+        "height": 0.04521963824289406
+      },
+      "sortOrder": 120
+    },
+    {
+      "id": "hangzhou-aiqing",
+      "title": "爱情鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30898/cover-480.81d8c6343a44.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30898/detail-optimized.afdc26d75e2c.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.12134344528710726,
+        "width": 0.9671361502347418,
+        "height": 0.838569880823402
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.8901808785529716,
+        "width": 0.8398058252427184,
+        "height": 0.07751937984496124
+      },
+      "closeHotspot": {
+        "left": 0.837378640776699,
+        "top": 0.05555555555555555,
+        "width": 0.08495145631067962,
+        "height": 0.04521963824289406
+      },
+      "sortOrder": 130
+    },
+    {
+      "id": "suzhou-zhufeng",
+      "title": "竹风雀",
+      "cityCode": "suzhou",
+      "cityName": "苏州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30900/cover-480.0aa6d8324634.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30900/detail-optimized.051603cc155a.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.12134344528710726,
+        "width": 0.9671361502347418,
+        "height": 0.838569880823402
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.8856589147286822,
+        "width": 0.8398058252427184,
+        "height": 0.07751937984496124
+      },
+      "closeHotspot": {
+        "left": 0.837378640776699,
+        "top": 0.05555555555555555,
+        "width": 0.08495145631067962,
+        "height": 0.04521963824289406
+      },
+      "sortOrder": 140
+    },
+    {
+      "id": "suzhou-30903",
+      "title": "苏州小鸟毛绒",
+      "cityCode": "suzhou",
+      "cityName": "苏州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/import-20261103-30903/cover-480.b94a01008c3d.webp",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30903/detail-optimized.c985d7823b9a.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.01643192488262911,
+        "top": 0.11700975081256772,
+        "width": 0.9671361502347418,
+        "height": 0.8450704225352113
+      },
+      "cartHotspot": {
+        "left": 0.08495145631067962,
+        "top": 0.9,
+        "width": 0.8398058252427184,
+        "height": 0.07692307692307693
+      },
+      "closeHotspot": {
+        "left": 0.837378640776699,
+        "top": 0.06025641025641026,
+        "width": 0.08495145631067962,
+        "height": 0.04487179487179487
+      },
+      "sortOrder": 150
+    },
+    {
+      "id": "hangzhou-baitou-gaojie",
+      "title": "白头高洁",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/hangzhou-baitou-gaojie/cover-480.0e47e6faeb70.webp",
+      "detailImageUrl": "/assets/shop/products/hangzhou-baitou-gaojie/detail-optimized.cddfbd200347.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "sortOrder": 160,
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.0199530516,
+        "top": 0.1159263272,
+        "width": 0.9530516432,
+        "height": 0.8385698808
+      },
+      "cartHotspot": {
+        "left": 0.0825123153,
+        "top": 0.8927648579,
+        "width": 0.8448275862,
+        "height": 0.0678294574
+      },
+      "closeHotspot": {
+        "left": 0.8509852217,
+        "top": 0.0562015504,
+        "width": 0.0837438424,
+        "height": 0.0478036176
+      }
+    },
+    {
+      "id": "hangzhou-jigong",
+      "title": "济公小鸟",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "互动发声毛绒玩偶",
+      "price": 79.0,
+      "coverImageUrl": "/assets/shop/products/hangzhou-jigong/cover-480.048e5b7c74bd.webp",
+      "detailImageUrl": "/assets/shop/products/hangzhou-jigong/detail-optimized.6a6e782c8bdf.webp",
+      "purchaseUrl": "https://e.tb.cn/h.jTRBezgACJi6VEn?tk=fD1ETztXxx7",
+      "sortOrder": 170,
+      "enabled": true,
+      "coverCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 1,
+        "height": 1
+      },
+      "detailCrop": {
+        "left": 0.0199530516,
+        "top": 0.1159263272,
+        "width": 0.9530516432,
+        "height": 0.8385698808
+      },
+      "cartHotspot": {
+        "left": 0.0825123153,
+        "top": 0.8927648579,
+        "width": 0.8448275862,
+        "height": 0.0678294574
+      },
+      "closeHotspot": {
+        "left": 0.8509852217,
+        "top": 0.0562015504,
+        "width": 0.0837438424,
+        "height": 0.0478036176
+      }
+    }
+  ],
+  "banners": [
+    {
+      "id": "huangying-shop",
+      "imageUrl": "/assets/shop/banners/huangying-shop-layout-v3-optimized.7e9e8553d7bc.webp",
+      "alt": "小鸟城市旅行日记，把喜欢的小鸟带去更多城市",
+      "enabled": true,
+      "sortOrder": 10
+    }
+  ]
+}

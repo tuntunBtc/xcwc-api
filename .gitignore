@@ -8,3 +8,10 @@ target/
 provision*.csv
 
 data/
+
+node_modules/
+admin-ui/dist/
+.env.*
+!.env.example
+!admin-ui/.env.production
+!admin-ui/.env.development

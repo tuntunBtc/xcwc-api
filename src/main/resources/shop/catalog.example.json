@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "id": "hangzhou-xihu-bird",
+      "enabled": false,
+      "title": "待替换的真实商品标题",
+      "cityCode": "hangzhou",
+      "cityName": "杭州",
+      "remark": "待确认的商品备注",
+      "price": 69.00,
+      "coverImageUrl": "/assets/shop/hangzhou-xihu-bird-cover.webp",
+      "detailImageUrl": "/assets/shop/hangzhou-xihu-bird-detail.webp",
+      "purchaseUrl": null,
+      "sortOrder": 10,
+      "cartHotspot": {"left": 0.08, "top": 0.87, "width": 0.84, "height": 0.08},
+      "coverCrop": {"left": 0, "top": 0, "width": 1, "height": 1},
+      "detailCrop": {"left": 0, "top": 0, "width": 1, "height": 1},
+      "closeHotspot": {"left": 0.837, "top": 0.0555, "width": 0.085, "height": 0.046}
+    }
+  ],
+  "banners": [
+    {
+      "id": "shop-hero-01",
+      "enabled": false,
+      "imageUrl": "/assets/shop/shop-hero-01.webp",
+      "alt": "小黄莺的小店",
+      "sortOrder": 10
+    }
+  ]
+}

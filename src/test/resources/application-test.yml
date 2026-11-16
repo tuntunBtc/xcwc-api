@@ -3,3 +3,12 @@ spring:
     url: ${TEST_DB_URL:jdbc:h2:mem:yanji;MODE=MySQL;DB_CLOSE_DELAY=-1}
     username: ${TEST_DB_USERNAME:sa}
     password: ${TEST_DB_PASSWORD:}
+app:
+  wx:
+    app-id: wxtestappid
+    step-unit: 1000
+    step-daily-cap: 5
+    debug: true
+    debug-code: DEBUG_CODE
+    debug-openid: debug_openid
+    debug-session-key: MDEyMzQ1Njc4OWFiY2RlZg==

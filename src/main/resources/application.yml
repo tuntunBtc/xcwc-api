@@ -22,6 +22,29 @@ spring:
   mvc:
     log-request-details: false
 app:
+  analytics:
+    admin-token: ${ANALYTICS_ADMIN_TOKEN:}
   checkins:
     directory: ${CHECKIN_STORAGE_DIR:./data/checkins}
   provision-count: 0
+  wx:
+    app-id: ${WX_APP_ID:}
+    legacy-app-id: ${WX_LEGACY_APP_ID:}
+    app-secret: ${WX_APP_SECRET:}
+    phone-login-enabled: ${WX_PHONE_LOGIN_ENABLED:true}
+    step-unit: 1000
+    step-daily-cap: 5
+    supply-enabled: ${WX_SUPPLY_ENABLED:false}
+    supply-steps: ${WX_SUPPLY_STEPS:3000}
+    debug: false
+    debug-code: DEBUG_CODE
+    debug-openid: debug_openid
+    debug-session-key: ${WX_DEBUG_SESSION_KEY:}
+
+mybatis:
+  type-aliases-package: com.ruoyi.common.core.domain.entity,com.ruoyi.system.domain
+  mapper-locations: classpath*:mapper/system/*Mapper.xml
+management-content:
+  directory: ${CONTENT_STORAGE_DIR:./data/content}
+admin:
+  bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:}

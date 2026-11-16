@@ -1,0 +1,2 @@
+<template><el-select :model-value="modelValue" :multiple="multiple" clearable filterable placeholder="选择素材" style="width:100%" @update:model-value="v=>{emit('update:modelValue',v||null);emit('change')}"><el-option v-for="a in assets" :key="a.id" :label="a.original_name+' · '+a.width+'×'+a.height" :value="a.id"/></el-select></template>
+<script setup>defineProps({modelValue:[String,Array],assets:Array,multiple:Boolean});const emit=defineEmits(['update:modelValue','change'])</script>

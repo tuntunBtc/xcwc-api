@@ -26,7 +26,7 @@ class RegistrationTest {
     @Autowired MockMvc mvc;
 
     @BeforeEach void clear() {
-        jdbc.update("DELETE FROM points_ledger"); jdbc.update("DELETE FROM user_skin");
+        jdbc.update("DELETE FROM checkin_work"); jdbc.update("DELETE FROM checkin_reward_source"); jdbc.update("DELETE FROM checkin_reward_day"); jdbc.update("DELETE FROM bird_binding"); jdbc.update("DELETE FROM points_ledger"); jdbc.update("DELETE FROM user_skin");
         jdbc.update("DELETE FROM bird"); jdbc.update("DELETE FROM auth_session"); jdbc.update("DELETE FROM app_user");
     }
     String auth(RegistrationService.Session session) { return "Bearer " + session.token(); }
@@ -70,21 +70,21 @@ class RegistrationTest {
         var other = service.register("other", "password-12345");
         var bird = service.provision();
         assertThat(service.find(bird.id()).claimed()).isFalse();
-        assertThatThrownBy(() -> service.claim(auth(owner), bird.id(), "wrong", "名字")).isInstanceOf(RegistrationService.Failure.class);
+        assertThatThrownBy(() -> service.adopt(null,bird.id(),java.util.UUID.randomUUID().toString(),"名字")).isInstanceOf(RegistrationService.Failure.class);
         assertThat(service.claim(auth(owner), bird.id(), bird.claimCode(), "我的燕叽").name()).isEqualTo("我的燕叽");
-        service.claim(auth(owner), bird.id(), bird.claimCode(), "不能被重试改名");
+        service.adopt(auth(owner),bird.id(),java.util.UUID.randomUUID().toString(),"不改名字");
         assertThat(service.mine(auth(owner))).hasSize(1);
         assertThat(service.mine(auth(owner)).getFirst().name()).isEqualTo("我的燕叽");
         assertThat(service.mine(auth(other))).isEmpty();
-        assertThatThrownBy(() -> service.claim(auth(other), bird.id(), bird.claimCode(), "抢绑")).isInstanceOf(RegistrationService.Failure.class);
+        assertThat(service.claim(auth(other), bird.id(), null, "我的鸟").name()).isEqualTo("我的鸟");
         assertThat(jdbc.queryForObject("SELECT claim_hash FROM bird", String.class)).isNotEqualTo(bird.claimCode());
-        mvc.perform(get("/api/birds/" + bird.id())).andExpect(status().isOk()).andExpect(jsonPath("$.claimed").value(true))
+        mvc.perform(get("/api/birds/" + bird.id())).andExpect(status().isOk()).andExpect(jsonPath("$.claimed").value(false))
             .andExpect(jsonPath("$.name").value("燕叽")).andExpect(jsonPath("$.claimHash").doesNotExist()).andExpect(jsonPath("$.ownerId").doesNotExist());
         mvc.perform(get("/api/me/birds")).andExpect(status().isUnauthorized());
         assertThat(service.mine(auth(service.login("owner", "password-12345")))).hasSize(1);
     }
 
-    @Test void concurrentClaimHasOnlyOneWinner() throws Exception {
+    @Test void concurrentAccountsMayBothBindOneEntity() throws Exception {
         var owner = service.register("owner", "password-12345");
         var other = service.register("other", "password-12345");
         var bird = service.provision();
@@ -98,7 +98,7 @@ class RegistrationTest {
             start.countDown();
             int winners = 0;
             for (var task : tasks) if (task.get(10, TimeUnit.SECONDS)) winners++;
-            assertThat(winners).isEqualTo(1);
+            assertThat(winners).isEqualTo(2);
         }
     }
 

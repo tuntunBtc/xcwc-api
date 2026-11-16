@@ -12,9 +12,10 @@ public class CheckinController {
     public CheckinController(CheckinService service){this.service=service;}
     @GetMapping("/checkin-catalog") public List<CheckinService.Character> catalog(){return service.catalog();}
     @PostMapping(value="/checkins",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
-    public CheckinService.Work create(@RequestHeader(value="Authorization",required=false)String auth,
+    public ResponseEntity<CheckinService.Work> create(@RequestHeader(value="Authorization",required=false)String auth,
         @RequestPart("metadata")CheckinService.Submission metadata,@RequestPart("original")MultipartFile original,@RequestPart("image")MultipartFile image){
-        return service.create(auth,metadata,original,image);
+        var result=service.createResponse(auth,metadata,original,image);
+        return ResponseEntity.status(result.created()?201:200).location(java.net.URI.create("/api/checkins/"+result.work().id())).body(result.work());
     }
     @GetMapping("/checkins/{id}") public CheckinService.Work get(@RequestHeader(value="Authorization",required=false)String auth,@PathVariable String id){return service.find(auth,id);}
     @GetMapping("/me/checkins") public CheckinService.Page history(@RequestHeader(value="Authorization",required=false)String auth,
@@ -22,6 +23,7 @@ public class CheckinController {
     @GetMapping({"/checkins/{id}/image","/checkins/{id}/original"})
     public ResponseEntity<byte[]> image(@RequestHeader(value="Authorization",required=false)String auth,@PathVariable String id,jakarta.servlet.http.HttpServletRequest request){
         var picture=service.image(auth,id,request.getRequestURI().endsWith("/original"));
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(picture.type())).header("Content-Disposition","inline; filename=\"checkin.jpg\"").body(picture.bytes());
+        String filename="image/png".equals(picture.type())?"checkin.png":"checkin.jpg";
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(picture.type())).header("Content-Disposition","inline; filename=\""+filename+"\"").body(picture.bytes());
     }
 }

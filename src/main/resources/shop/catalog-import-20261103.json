@@ -1,0 +1,512 @@
+{
+  "sourceFolder": "小鸟资料库/小鸟商城详情页",
+  "imported": [
+    {
+      "id": "hangzhou-hehua",
+      "title": "荷花鸟",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30890_18.png",
+      "sourceSha256": "1ff9186addd64077d530600e844f6607addddddbca75558d63b7177adca2c3b8",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30890/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        16,
+        219,
+        820,
+        1542
+      ],
+      "coverPixels": [
+        67,
+        410,
+        720,
+        592
+      ],
+      "cartPixels": [
+        82,
+        1591,
+        690,
+        115
+      ],
+      "closePixels": [
+        698,
+        303,
+        82,
+        82
+      ]
+    },
+    {
+      "id": "hangzhou-jiangnan-lingyu",
+      "title": "江南灵羽",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30891_18.png",
+      "sourceSha256": "f14155a31598bf836d2dcf33342ca6168b840f2e916693ad3130f2dc2149a405",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30891/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        16,
+        220,
+        820,
+        1540
+      ],
+      "coverPixels": [
+        66,
+        415,
+        722,
+        588
+      ],
+      "cartPixels": [
+        83,
+        1594,
+        690,
+        109
+      ],
+      "closePixels": [
+        698,
+        304,
+        82,
+        82
+      ]
+    },
+    {
+      "id": "hangzhou-dingsheng-pengpeng",
+      "title": "定胜鹏鹏鸟",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30892_18.png",
+      "sourceSha256": "9f582ea5e0eedc3f6efeb47729a0e7892e0f935c229125be6b5f774422212b95",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30892/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        4,
+        166,
+        844,
+        1596
+      ],
+      "coverPixels": [
+        63,
+        410,
+        729,
+        612
+      ],
+      "cartPixels": [
+        81,
+        1602,
+        695,
+        105
+      ],
+      "closePixels": [
+        690,
+        282,
+        92,
+        92
+      ]
+    },
+    {
+      "id": "taizhou-jianke",
+      "title": "剑客小鸟",
+      "city": "台州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30893_18.png",
+      "sourceSha256": "282d51484d7107bd60ecfca4d629a390845ae127b9804cdba19b03f4e3af0695",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30893/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        8,
+        177,
+        836,
+        1584
+      ],
+      "coverPixels": [
+        65,
+        413,
+        726,
+        597
+      ],
+      "cartPixels": [
+        79,
+        1600,
+        695,
+        106
+      ],
+      "closePixels": [
+        691,
+        290,
+        92,
+        92
+      ]
+    },
+    {
+      "id": "shaoxing-jiaoji",
+      "title": "角鸡",
+      "city": "绍兴",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30894_18.png",
+      "sourceSha256": "26e2c6b04937a4110edac27052c2506b67fe36f846352b2adc2be727265d64a7",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30894/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        6,
+        170,
+        840,
+        1591
+      ],
+      "coverPixels": [
+        63,
+        410,
+        730,
+        587
+      ],
+      "cartPixels": [
+        78,
+        1599,
+        697,
+        111
+      ],
+      "closePixels": [
+        689,
+        281,
+        94,
+        94
+      ]
+    },
+    {
+      "id": "hangzhou-taohua",
+      "title": "桃花鸟",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30895_18.png",
+      "sourceSha256": "4fbd85b2a6424438565a9f2434c0da1cbcedc68cf90ee1413ced9b82eac0e4a6",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30895/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        6,
+        190,
+        840,
+        1571
+      ],
+      "coverPixels": [
+        65,
+        422,
+        724,
+        581
+      ],
+      "cartPixels": [
+        80,
+        1599,
+        693,
+        108
+      ],
+      "closePixels": [
+        692,
+        293,
+        91,
+        91
+      ]
+    },
+    {
+      "id": "hangzhou-taozhi-cuiniao",
+      "title": "桃枝翠鸟",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30896_18.png",
+      "sourceSha256": "d4464706f3963444c390fb62b3e16c58392b9b5ef4413eab7f4a731d256a7d49",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30896/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        20,
+        202,
+        812,
+        1553
+      ],
+      "coverPixels": [
+        66,
+        416,
+        719,
+        584
+      ],
+      "cartPixels": [
+        81,
+        1599,
+        693,
+        110
+      ],
+      "closePixels": [
+        693,
+        307,
+        80,
+        80
+      ]
+    },
+    {
+      "id": "hangzhou-dongpo",
+      "title": "东坡鸟",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30897_18.png",
+      "sourceSha256": "a518cdf3b85c62d5f2d4c32eef4df068083bd64cf3a23fcbd187e1db2620b566",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30897/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        14,
+        224,
+        824,
+        1548
+      ],
+      "coverPixels": [
+        64,
+        420,
+        724,
+        570
+      ],
+      "cartPixels": [
+        84,
+        1595,
+        692,
+        120
+      ],
+      "closePixels": [
+        704,
+        310,
+        70,
+        70
+      ]
+    },
+    {
+      "id": "hangzhou-aiqing",
+      "title": "爱情鸟",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30898_18.png",
+      "sourceSha256": "0e8f46f5000ea17737d2531c9afe886921c78d713ffcf2af63647792521f2bdd",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30898/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        14,
+        224,
+        824,
+        1548
+      ],
+      "coverPixels": [
+        64,
+        420,
+        724,
+        570
+      ],
+      "cartPixels": [
+        84,
+        1602,
+        692,
+        120
+      ],
+      "closePixels": [
+        704,
+        310,
+        70,
+        70
+      ]
+    },
+    {
+      "id": "luoyang-qingyu",
+      "title": "青羽鸾鸟",
+      "city": "洛阳",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30899_18.png",
+      "sourceSha256": "11cfbd8c55f479a79d94dce898763cc609f58510db1245a97d754584ac9ff0fe",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30899/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        14,
+        224,
+        824,
+        1548
+      ],
+      "coverPixels": [
+        64,
+        420,
+        724,
+        570
+      ],
+      "cartPixels": [
+        84,
+        1595,
+        692,
+        120
+      ],
+      "closePixels": [
+        704,
+        310,
+        70,
+        70
+      ]
+    },
+    {
+      "id": "suzhou-zhufeng",
+      "title": "竹风雀",
+      "city": "苏州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30900_18.png",
+      "sourceSha256": "83d5bf5f438e26838eecfb19ce1084f60b0afa1225ab43a830aa70100a776434",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30900/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        14,
+        224,
+        824,
+        1548
+      ],
+      "coverPixels": [
+        64,
+        420,
+        724,
+        570
+      ],
+      "cartPixels": [
+        84,
+        1595,
+        692,
+        120
+      ],
+      "closePixels": [
+        704,
+        310,
+        70,
+        70
+      ]
+    },
+    {
+      "id": "hangzhou-guihua",
+      "title": "桂花小鸟",
+      "city": "杭州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30901_18.png",
+      "sourceSha256": "169770b8ba227f81b26a82d0f44ef4d22b497e21f5c59ecd3e9acd3bc2ca9c76",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30901/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        14,
+        224,
+        824,
+        1548
+      ],
+      "coverPixels": [
+        64,
+        420,
+        724,
+        570
+      ],
+      "cartPixels": [
+        84,
+        1595,
+        692,
+        120
+      ],
+      "closePixels": [
+        704,
+        310,
+        70,
+        70
+      ]
+    },
+    {
+      "id": "suzhou-30903",
+      "title": "苏州小鸟毛绒",
+      "city": "苏州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30903_18.png",
+      "sourceSha256": "df181afeb20930fca1e173b3cb77e3529d3cbc58d9e613072f76977277d3c936",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30903/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        14,
+        216,
+        824,
+        1560
+      ],
+      "coverPixels": [
+        64,
+        395,
+        724,
+        590
+      ],
+      "cartPixels": [
+        84,
+        1620,
+        692,
+        120
+      ],
+      "closePixels": [
+        704,
+        310,
+        70,
+        70
+      ]
+    },
+    {
+      "id": "suzhou-fengyin",
+      "title": "枫音雀",
+      "city": "苏州",
+      "source": "小鸟资料库/小鸟商城详情页/微信图片_20261103191002_30904_18.png",
+      "sourceSha256": "9337692f7d02707ba6585b74a20ba6c8ca2867d2627d08cc41d3a7a5092df959",
+      "detailImageUrl": "/assets/shop/products/import-20261103-30904/detail.png",
+      "sourceSize": [
+        852,
+        1846
+      ],
+      "displayPixels": [
+        14,
+        224,
+        824,
+        1560
+      ],
+      "coverPixels": [
+        64,
+        420,
+        724,
+        590
+      ],
+      "cartPixels": [
+        84,
+        1614,
+        692,
+        120
+      ],
+      "closePixels": [
+        704,
+        310,
+        70,
+        70
+      ]
+    }
+  ],
+  "retained": [
+    "hangzhou-xihu"
+  ]
+}
