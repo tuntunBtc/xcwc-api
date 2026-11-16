@@ -19,5 +19,7 @@ class AdminMigrationTest {
         var tables=List.of("app_user","bird","bird_binding","pet_state","auth_session","user_skin");var before=new LinkedHashMap<String,Object>();for(String table:tables)before.put(table,db.queryForList("SELECT * FROM "+table));
         Flyway.configure().dataSource(ds).load().migrate();for(String table:tables)assertThat(db.queryForList("SELECT * FROM "+table)).as(table).isEqualTo(before.get(table));
         assertThat(db.queryForObject("SELECT COUNT(*) FROM sys_user",Integer.class)).isZero();assertThat(db.queryForObject("SELECT COUNT(*) FROM wardrobe_entitlement",Integer.class)).isZero();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM pet_spark",Integer.class)).isZero();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM pet_spark_day",Integer.class)).isZero();
     }
 }

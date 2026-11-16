@@ -21,8 +21,9 @@ public class CloudPetService {
     private final RegistrationService users;
     private final ObjectMapper json;
     private final Clock clock;
-    public CloudPetService(JdbcTemplate jdbc, RegistrationService users, ObjectMapper json, Clock clock) {
-        this.jdbc=jdbc; this.users=users; this.json=json; this.clock=clock;
+    private final PetSpark spark;
+    public CloudPetService(JdbcTemplate jdbc, RegistrationService users, ObjectMapper json, Clock clock, PetSpark spark) {
+        this.jdbc=jdbc; this.users=users; this.json=json; this.clock=clock; this.spark=spark;
     }
     public record Command(String requestId, String expectedVersion, String action, String nickname, String expectedDate) {}
     public record Adoption(String requestId, String birdId, String nickname) {}
@@ -121,6 +122,8 @@ public class CloudPetService {
         v.put("contentVersion",jdbc.queryForObject("SELECT published_id FROM content_workspace WHERE id=1",String.class));
         v.put("active",b.get("active"));v.put("version",Long.toString(s.version));v.put("ruleVersion","normal-v1");
         v.put("serverTime",at);v.put("businessDate",at.atZone(ZONE).toLocalDate());
+        v.put("sparkRuleVersion",PetSpark.RULE_VERSION);
+        v.put("spark",spark.snapshot(pet,at.atZone(ZONE).toLocalDate()));
         v.put("care",Map.of("satiety",c.satiety(),"hydration",c.hydration(),"mood",c.mood(),"lastCompanionAt",c.companionAt()));
         v.put("inventory",Map.of("food",s.food,"water",s.water));
         Map<String,Object> event=new LinkedHashMap<>();event.put("type","POOP");event.put("dueAt",s.due);
@@ -186,7 +189,7 @@ public class CloudPetService {
         var b=binding(user,pet);if(!Boolean.TRUE.equals(b.get("active")))throw fail(HttpStatus.GONE,"BIRD_INACTIVE");
         Instant at=now();initialize(pet,at);State s=state(pet,at);
         if(s.version!=Long.parseLong(cmd.expectedVersion()))throw fail(HttpStatus.CONFLICT,"PET_VERSION_CONFLICT");
-        int foodBefore=s.food,waterBefore=s.water,reward=0;boolean companion=false,changed=false;int moodGain=0;String outcome="SUCCEEDED";
+        int foodBefore=s.food,waterBefore=s.water,reward=0;boolean companion=false,changed=false,cleaned=false;int moodGain=0;String outcome="SUCCEEDED";
         var c=s.care;int satiety=c.satiety(),hydration=c.hydration();
         switch(cmd.action()) {
             case "RENAME" -> {changed=!name.equals(b.get("nickname"));jdbc.update("UPDATE bird_binding SET nickname=? WHERE id=?",name,pet);b.put("nickname",name);}
@@ -205,7 +208,7 @@ public class CloudPetService {
             case "CLEAN" -> {
                 // Cleaning is companionship even when the pending event cannot yet be removed.
                 companion=true;changed=true;if(s.cleanCount<1){moodGain=5;s.cleanCount++;}
-                if(s.due!=null&&!s.due.isAfter(at))s.due=null;
+                if(s.due!=null&&!s.due.isAfter(at)){s.due=null;cleaned=true;}
             }
             case "PET" -> {
                 companion=true;changed=true;
@@ -226,7 +229,16 @@ public class CloudPetService {
         s.version++;save(pet,s);
         jdbc.update("UPDATE app_user SET cloud_pet_enabled=TRUE,state_version=state_version+1 WHERE id=?",user);
         if(s.food!=foodBefore||s.water!=waterBefore)inventory(pet,cmd.requestId(),cmd.action(),s.food-foodBefore,s.water-waterBefore,s.food,s.water,at);
+        boolean qualifies = switch (cmd.action()) {
+            case "PET" -> true;
+            case "FEED" -> s.food < foodBefore;
+            case "WATER" -> s.water < waterBefore;
+            case "CLEAN" -> cleaned;
+            default -> false;
+        };
+        var sparkEvent = qualifies ? spark.record(pet,s.date,cmd.requestId()) : null;
         var result=new LinkedHashMap<String,Object>();result.put("outcome",outcome);result.put("changed",changed);result.put("reward",reward);
+        if(sparkEvent!=null)result.put("sparkEvent",sparkEvent.name());
         result.put("pet",view(user,pet,b,s,at));result.put("wallet",wallet(user));
         return record(user,cmd.requestId(),digest,result,at);
     }

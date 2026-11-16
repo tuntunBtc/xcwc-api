@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -23,6 +26,7 @@ class CloudPetTest {
     @Autowired PointsService points;
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
+    @Autowired ObjectMapper json;
     @MockitoBean Clock clock;
     Instant time;String auth,user,bird,pet;
     String key(){return UUID.randomUUID().toString();}
@@ -37,6 +41,7 @@ class CloudPetTest {
     CloudPetService.Command cmd(String id,String version,String action){return new CloudPetService.Command(id,version,action,null,action.equals("CLAIM_SUPPLY")?time.atZone(ZoneId.of("Asia/Shanghai")).toLocalDate().toString():null);}
     Map<String,Object> act(String action){return pets.act(auth,pet,cmd(key(),version(),action));}
     @SuppressWarnings("unchecked") int stat(Map<String,Object> r,String group,String name){return ((Number)((Map<String,Object>)pv(r).get(group)).get(name)).intValue();}
+    PetSpark.Snapshot spark(Map<String,Object> r){return (PetSpark.Snapshot)pv(r).get("spark");}
     @Test void restoresSharedIdentityIndependentPetsAndInitialInventoryOnce(){
         String secondAuth="Bearer "+users.issueSessionForUser(user).token();
         assertThat(pets.detail(secondAuth,pet)).isEqualTo(pets.detail(auth,pet));
@@ -85,10 +90,99 @@ class CloudPetTest {
     @Test void petLimitDoesNotBlockCompanionship(){
         time=Instant.parse("2026-11-11T01:00:00Z");
         jdbc.update("UPDATE app_user SET pet_reward_date=?,pet_reward_count=10 WHERE id=?",LocalDate.of(2026,11,11),user);
+        jdbc.update("UPDATE pet_state SET mood=100,food=0,water=0 WHERE binding_id=?",pet);
         var result=act("PET");assertThat(result.get("reward")).isEqualTo(0);
         assertThat(stat(result,"care","mood")).isEqualTo(100);
+        assertThat(result.get("sparkEvent")).isEqualTo("LIT");
+        assertThat(spark(result).level()).isEqualTo(1);
+        assertThat(spark(result).affinity()).isEqualTo(1);
         assertThat(points.wallet(auth).balance()).isEqualTo(5);
         assertThatThrownBy(()->points.awardSteps(user,key(),"2026-11-11",5)).isInstanceOf(RegistrationService.Failure.class);
+    }
+
+    @Test void sparkUsesOnlyEffectiveCareAndServerBusinessDate() throws Exception {
+        mvc.perform(get("/api/me/pets/" + pet).header("Authorization", auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.pet.ruleVersion").value("normal-v1"))
+            .andExpect(jsonPath("$.pet.sparkRuleVersion").value("spark-v1"))
+            .andExpect(jsonPath("$.pet.spark.status").value("UNLIT"))
+            .andExpect(jsonPath("$.pet.spark.affinity").value(0))
+            .andExpect(jsonPath("$.pet.spark.recoveryDeadline").hasJsonPath())
+            .andExpect(jsonPath("$.pet.spark.recoveryDeadline").isEmpty());
+        var empty = act("CLEAN");
+        assertThat(empty.get("outcome")).isEqualTo("SUCCEEDED");
+        assertThat(empty).doesNotContainKey("sparkEvent");
+        assertThat(act("CLAIM_SUPPLY")).doesNotContainKey("sparkEvent");
+        jdbc.update("UPDATE pet_state SET satiety=100,hydration=100 WHERE binding_id=?", pet);
+        assertThat(act("FEED").get("outcome")).isEqualTo("ALREADY_FULL");
+        assertThat(act("WATER").get("outcome")).isEqualTo("ALREADY_FULL");
+        assertThat(spark(pets.detail(auth, pet)).affinity()).isZero();
+        jdbc.update("UPDATE pet_state SET satiety=60 WHERE binding_id=?", pet);
+        assertThat(act("FEED").get("sparkEvent")).isEqualTo("LIT");
+        assertThat(act("CLEAN")).doesNotContainKey("sparkEvent");
+        time = time.plusSeconds(60);
+        var clean = act("CLEAN");
+        assertThat(clean.get("sparkEvent")).isEqualTo("LEVELED");
+        assertThat(spark(clean).affinity()).isEqualTo(2);
+        assertThat(stat(clean,"inventory","food")).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM pet_spark_day WHERE binding_id=?", Integer.class, pet)).isEqualTo(2);
+    }
+
+    @Test void previousReceiptCanBeReadAndReplayedWithoutRetroactiveSpark() throws Exception {
+        var command = cmd(key(),version(),"WATER");
+        pets.act(auth,pet,command);
+        byte[] originalKey = command.requestId().getBytes(StandardCharsets.US_ASCII);
+        var stored = (ObjectNode)json.readTree(jdbc.queryForObject(
+            "SELECT result_json FROM pet_operation WHERE user_id=? AND request_id=?",String.class,user,originalKey));
+        stored.remove("sparkEvent");
+        ((ObjectNode)stored.get("pet")).remove(List.of("sparkRuleVersion","spark"));
+        jdbc.update("UPDATE pet_operation SET result_json=? WHERE user_id=? AND request_id=?",stored.toString(),user,originalKey);
+        // Model a committed pre-V15 receipt with no corresponding spark rows.
+        jdbc.update("DELETE FROM pet_spark WHERE binding_id=?", pet);
+        time = time.plusSeconds(61);
+        assertThat(pets.operation(auth,command.requestId())).doesNotContainKey("sparkEvent");
+        var receipt = pets.act(auth,pet,command);
+        assertThat(receipt.get("replayed")).isEqualTo(true);
+        assertThat(pv(receipt)).doesNotContainKeys("sparkRuleVersion","spark");
+        assertThat(spark(pets.detail(auth,pet)).status()).isEqualTo(PetSpark.Status.UNLIT);
+        assertThat(stat(pets.detail(auth,pet),"inventory","water")).isEqualTo(2);
+        assertThat(act("PET").get("sparkEvent")).isEqualTo("LIT");
+    }
+
+    @Test void sparkWriteBelongsToTheRelationshipAcrossDevices() {
+        var first = act("PET");
+        String secondDevice = "Bearer " + users.issueSessionForUser(user).token();
+        assertThat(spark(pets.detail(secondDevice,pet))).isEqualTo(spark(first));
+        String another = pet(pets.adopt(auth,new CloudPetService.Adoption(key(),users.provision().id(),"New")));
+        assertThat(spark(pets.detail(secondDevice,another)).level()).isZero();
+        String otherOwner = "Bearer " + users.register("c_"+users.randomKey(8),"password-fixture-123").token();
+        String sameBird = pet(pets.adopt(otherOwner,new CloudPetService.Adoption(key(),bird,"New")));
+        assertThat(spark(pets.detail(otherOwner,sameBird)).level()).isZero();
+        assertThatThrownBy(()->pets.detail(otherOwner,pet)).isInstanceOf(RegistrationService.Failure.class);
+    }
+
+    @Test void lastWindowDayRecoveryPersistsAcrossDevicesAndStopsAtOneDayIncrement() {
+        LocalDate today = time.atZone(ZoneId.of("Asia/Shanghai")).toLocalDate();
+        jdbc.update("INSERT INTO pet_spark(binding_id,level,affinity,normal_date,recovery_progress) VALUES(?,5,8,?,0)",
+            pet,today.minusDays(4));
+        String secondDevice = "Bearer " + users.issueSessionForUser(user).token();
+        assertThat(spark(pets.detail(secondDevice,pet)).recoveryDeadline()).isEqualTo(today);
+        assertThat(act("PET").get("sparkEvent")).isEqualTo("RECOVERY_STARTED");
+        time = time.plusSeconds(86_400);
+        var second = pets.act(secondDevice,pet,cmd(key(),version(),"PET"));
+        assertThat(second.get("sparkEvent")).isEqualTo("RECOVERY_PROGRESS");
+        assertThat(spark(second).recoveryProgress()).isEqualTo(2);
+        assertThat(spark(second).recoveryDeadline()).isEqualTo(today);
+        time = time.plusSeconds(86_400);
+        var command = cmd(key(),version(),"PET");
+        var restored = pets.act(auth,pet,command);
+        assertThat(restored.get("sparkEvent")).isEqualTo("RESTORED");
+        assertThat(spark(restored).level()).isEqualTo(8);
+        assertThat(spark(restored).affinity()).isEqualTo(11);
+        assertThat(spark(restored).recoveryDeadline()).isNull();
+        assertThat(pets.act(secondDevice,pet,command).get("replayed")).isEqualTo(true);
+        assertThat(act("PET")).doesNotContainKey("sparkEvent");
+        assertThat(spark(pets.detail(secondDevice,pet)).level()).isEqualTo(8);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM pet_spark_day WHERE binding_id=?",Integer.class,pet)).isEqualTo(3);
     }
     @Test void requestRollsBackOnFailureAndRejectsAssetInjection() throws Exception {
         jdbc.update("UPDATE pet_state SET food=0 WHERE binding_id=?",pet);String v=version();String id=key();
@@ -108,13 +202,22 @@ class CloudPetTest {
     }
     @Test void concurrentSameRequestReturnsOneReceiptAndOneLedger() throws Exception {
         String id=key();var command=cmd(id,version(),"FEED");var start=new CountDownLatch(1);
+        String secondDevice = "Bearer " + users.issueSessionForUser(user).token();
         try(var pool=Executors.newFixedThreadPool(2)){
             var a=pool.submit(()->{start.await();return pets.act(auth,pet,command);});
-            var b=pool.submit(()->{start.await();return pets.act(auth,pet,command);});start.countDown();
+            var b=pool.submit(()->{start.await();return pets.act(secondDevice,pet,command);});start.countDown();
             assertThat(List.of(a.get(15,TimeUnit.SECONDS).get("replayed"),b.get(15,TimeUnit.SECONDS).get("replayed"))).containsExactlyInAnyOrder(false,true);
         }
         assertThat(stat(pets.detail(auth,pet),"inventory","food")).isEqualTo(2);
         assertThat(pets.inventoryHistory(auth,pet,Long.MAX_VALUE)).hasSize(2);
+        assertThat(act("WATER")).doesNotContainKey("sparkEvent");
+        assertThat(spark(pets.detail(secondDevice,pet)).level()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM pet_spark_day WHERE binding_id=?",Integer.class,pet)).isEqualTo(1);
+        time=time.plusSeconds(61);
+        assertThat(act("PET").get("sparkEvent")).isEqualTo("LEVELED");
+        var replay = pets.operation(secondDevice,id);
+        assertThat(pv(replay).get("businessDate")).isEqualTo("2026-11-11");
+        assertThat(spark(pets.detail(secondDevice,pet)).level()).isEqualTo(2);
     }
     @Test void expiredLegacyReceiptConsumesEligibilityWithoutImportingInventory(){
         jdbc.update("INSERT INTO wx_supply_claim(user_id,claim_date,receipt_id,installation_hash,bird_code) VALUES(?,?,?,?,?)",

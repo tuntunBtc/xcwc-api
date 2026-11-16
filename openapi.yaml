@@ -3453,6 +3453,13 @@ components:
           type: string
     CloudPet:
       type: object
+      description: 当前快照保留 normal-v1 养成规则，续火花作为独立能力。旧服务或历史回执可同时省略 sparkRuleVersion 和 spark；出现其中一个字段时两个都必须有效。
+      oneOf:
+      - required: [sparkRuleVersion, spark]
+      - not:
+          anyOf:
+          - required: [sparkRuleVersion]
+          - required: [spark]
       required:
       - petId
       - birdId
@@ -3484,6 +3491,11 @@ components:
           type: string
           enum:
           - normal-v1
+        sparkRuleVersion:
+          type: string
+          enum: [spark-v1]
+        spark:
+          $ref: '#/components/schemas/PetSpark'
         serverTime:
           type: string
           format: date-time
@@ -3555,6 +3567,42 @@ components:
         contentVersion:
           type: string
           nullable: true
+    PetSpark:
+      type: object
+      description: 主人与此 petId 的续火花状态，按快照 businessDate（北京时间自然日）计算。
+      required: [status, level, affinity, effectiveToday, frozenLevel, recoveryProgress, recoveryDeadline]
+      properties:
+        status:
+          type: string
+          enum: [UNLIT, ACTIVE, RECOVERABLE, RECOVERING, EXPIRED]
+        level:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前火花天数；恢复时等于冻结等级，未点亮或已到期为 0。
+        affinity:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 累计有效互动日；中断、恢复失败和重新点亮均不扣除。
+        effectiveToday:
+          type: boolean
+          description: 快照业务日已计入一次有效互动。
+        frozenLevel:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 可恢复或恢复中时的冻结等级，其余状态为 0。
+        recoveryProgress:
+          type: integer
+          minimum: 0
+          maximum: 2
+          description: 仅恢复中为 1 或 2；第 3 天结算后转为 ACTIVE 并清零。
+        recoveryDeadline:
+          type: string
+          format: date
+          nullable: true
+          description: 原窗口内可开始恢复的最后一个北京时间自然日，含当日。已开始且保持连续的恢复可跨过该日期。非恢复状态为空。
     CloudDetail:
       type: object
       required:
@@ -3593,6 +3641,10 @@ components:
           type: integer
           minimum: 0
           maximum: 1
+        sparkEvent:
+          type: string
+          enum: [LIT, LEVELED, RECOVERY_STARTED, RECOVERY_PROGRESS, RESTORED, RELIT]
+          description: 当次照顾首次计入宠物的快照业务日时提供。重放保留原回执，事件及回执内快照不代表当前状态。升级前的历史回执无火花字段，也不补发旧互动。
         pet:
           $ref: '#/components/schemas/CloudPet'
         wallet:
