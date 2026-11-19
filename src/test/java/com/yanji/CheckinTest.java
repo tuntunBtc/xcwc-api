@@ -61,7 +61,7 @@ class CheckinTest {
         assertThat(points.history(auth,Long.MAX_VALUE)).singleElement().satisfies(e->{assertThat(e.operation()).isEqualTo("CHECKIN_REWARD");assertThat(e.targetId()).isEqualTo(first.id());});
         assertThat(checkins.image(auth,first.id(),false).bytes()).isEqualTo(image.getBytes());
         mvc.perform(get(first.imageUrl()).header("Authorization",other)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/checkins/"+first.id()).header("Authorization",other)).andExpect(status().isNotFound());
+        mvc.perform(get("/bird/v1/checkins/"+first.id()).header("Authorization",other)).andExpect(status().isNotFound());
         mvc.perform(get(first.originalUrl())).andExpect(status().isUnauthorized());
         assertThat(checkins.history(other,null,20).items()).isEmpty();
         try(var paths=Files.list(DIRECTORY)){assertThat(paths.count()).isEqualTo(2);}
@@ -129,16 +129,35 @@ class CheckinTest {
         }
         assertThat(points.wallet(auth).balance()).isEqualTo(3);assertThat(checkins.history(auth,null,20).total()).isEqualTo(4);
     }
+    @Test void bothCheckinGenerationsReturnPrivateLinksInTheCallingNamespace() throws Exception {
+        String metadata = new com.fasterxml.jackson.databind.ObjectMapper()
+            .writeValueAsString(request(key(),birds.subList(0,1)));
+        String id = null;
+        for (String base : List.of("/bird/v1","/bird/v1")) {
+            var response = mvc.perform(multipart(base+"/checkins").file(original).file(image)
+                    .file(new MockMultipartFile("metadata","metadata.json","application/json",metadata.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                    .header("Authorization",auth)).andExpect(status().is(id==null?201:200)).andReturn().getResponse();
+            var item = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getContentAsByteArray());
+            if (id==null) id=item.get("id").asText();
+            String detail=base+"/checkins/"+id;
+            assertThat(response.getHeader("Location")).isEqualTo(detail);
+            assertThat(item.path("imageUrl").asText()).isEqualTo(detail+"/image");
+            mvc.perform(get(base+"/me/checkins").header("Authorization",auth))
+                .andExpect(jsonPath("$.items[0].originalUrl").value(detail+"/original"));
+            mvc.perform(get(detail).header("Authorization",auth)).andExpect(jsonPath("$.imageUrl").value(detail+"/image"));
+            mvc.perform(get(detail+"/original").header("Authorization",auth)).andExpect(status().isOk());
+        }
+    }
     @Test void multipartContractAndImageStatus() throws Exception {
         String metadata=new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request(key(),birds.subList(0,3)));
-        mvc.perform(multipart("/api/checkins").file(original).file(image).file(new MockMultipartFile("metadata","metadata.json","application/json",metadata.getBytes(java.nio.charset.StandardCharsets.UTF_8))).header("Authorization",auth))
+        mvc.perform(multipart("/bird/v1/checkins").file(original).file(image).file(new MockMultipartFile("metadata","metadata.json","application/json",metadata.getBytes(java.nio.charset.StandardCharsets.UTF_8))).header("Authorization",auth))
             .andExpect(status().isCreated()).andExpect(header().exists("Location")).andExpect(jsonPath("$.status").value("SUCCEEDED")).andExpect(jsonPath("$.reward").value(1));
-        String location="/api/checkins/"+checkins.history(auth,null,20).items().getFirst().id();
-        mvc.perform(multipart("/api/checkins").file(original).file(image).file(new MockMultipartFile("metadata","metadata.json","application/json",metadata.getBytes(java.nio.charset.StandardCharsets.UTF_8))).header("Authorization",auth))
+        String location="/bird/v1/checkins/"+checkins.history(auth,null,20).items().getFirst().id();
+        mvc.perform(multipart("/bird/v1/checkins").file(original).file(image).file(new MockMultipartFile("metadata","metadata.json","application/json",metadata.getBytes(java.nio.charset.StandardCharsets.UTF_8))).header("Authorization",auth))
             .andExpect(status().isOk()).andExpect(header().string("Location",location));
         mvc.perform(get(location).header("Authorization",auth)).andExpect(status().isOk());
-        mvc.perform(get("/api/me/checkins").header("Authorization",auth)).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1));
-        mvc.perform(get("/api/checkin-catalog")).andExpect(status().isOk());
+        mvc.perform(get("/bird/v1/me/checkins").header("Authorization",auth)).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1));
+        mvc.perform(get("/bird/v1/checkin-catalog")).andExpect(status().isOk());
     }
     @Test void diskFailureNeverPaysOrCreatesWork() throws Exception {
         Files.delete(DIRECTORY);Files.writeString(DIRECTORY,"not a directory");

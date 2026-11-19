@@ -4,7 +4,7 @@ import java.util.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/me")
+@RequestMapping("/bird/v1/me")
 public class WardrobeController {
     private final WardrobeService wardrobe;
     public WardrobeController(WardrobeService wardrobe){this.wardrobe=wardrobe;}

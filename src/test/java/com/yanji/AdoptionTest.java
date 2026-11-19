@@ -29,10 +29,10 @@ class AdoptionTest {
   bird=registration.provision().id();second=registration.provision().id();
  }
  @Test void authenticationAndWrongMethodHaveCorrectStatus() throws Exception {
-  mvc.perform(post("/api/birds/"+bird+"/adopt").contentType("application/json").content("{\"requestId\":\"1234567890123456\",\"name\":\"小鸟\"}")).andExpect(status().isUnauthorized());
-  mvc.perform(get("/api/auth/login")).andExpect(status().isMethodNotAllowed()).andExpect(header().string("Allow",org.hamcrest.Matchers.containsString("POST")));
-  mvc.perform(get("/api/auth/session").header("Authorization",a)).andExpect(status().isOk()).andExpect(jsonPath("$.username").value("adopt_a"));
-  registration.logout(a);mvc.perform(get("/api/auth/session").header("Authorization",a)).andExpect(status().isUnauthorized());
+  mvc.perform(post("/bird/v1/birds/"+bird+"/adopt").contentType("application/json").content("{\"requestId\":\"1234567890123456\",\"name\":\"小鸟\"}")).andExpect(status().isUnauthorized());
+  mvc.perform(get("/bird/v1/auth/login")).andExpect(status().isMethodNotAllowed()).andExpect(header().string("Allow",org.hamcrest.Matchers.containsString("POST")));
+  mvc.perform(get("/bird/v1/auth/session").header("Authorization",a)).andExpect(status().isOk()).andExpect(jsonPath("$.username").value("adopt_a"));
+  registration.logout(a);mvc.perform(get("/bird/v1/auth/session").header("Authorization",a)).andExpect(status().isUnauthorized());
  }
  @Test void sameEntityHasIndependentAccountsAndOneWelcomePerAccount(){
   var first=registration.adopt(a,bird,key(),"湖小叽");var other=registration.adopt(b,bird,key(),"黄团子");

@@ -172,7 +172,7 @@ class SupplyApiTest {
     }
 
     private String login() throws Exception {
-        var result = body(mvc.perform(post("/api/auth/wx-login").contentType("application/json")
+        var result = body(mvc.perform(post("/bird/v1/auth/wx-login").contentType("application/json")
             .with(request -> { request.setRemoteAddr(remote); return request; })
             .content(mapper.writeValueAsBytes(Map.of("code", UUID.randomUUID().toString())))));
         return "Bearer " + result.path("token").asText();
@@ -198,7 +198,7 @@ class SupplyApiTest {
         var payload = new LinkedHashMap<>(Map.of("encryptedData", encrypted, "iv", FIXTURE_KEY,
             "installationId", installation, "birdCode", code));
         if (expectedDate != null) payload.put("expectedDate", expectedDate);
-        var request = post("/api/supplies/" + operation).contentType("application/json")
+        var request = post("/bird/v1/supplies/" + operation).contentType("application/json")
             .with(value -> { value.setRemoteAddr(remote); return value; }).content(mapper.writeValueAsBytes(payload));
         if (token != null) request.header("Authorization", token);
         return mvc.perform(request);

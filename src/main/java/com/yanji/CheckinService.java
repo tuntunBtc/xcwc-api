@@ -52,8 +52,8 @@ public class CheckinService {
     private Row row(java.sql.ResultSet r, int n) throws java.sql.SQLException {
         String id=r.getString("id");
         return new Row(new Work(id,"SUCCEEDED",List.of(r.getString("bird_ids").split(",")),r.getString("style_id"),
-            r.getString("label"),r.getTimestamp("created_at").toInstant(),"/api/checkins/"+id+"/image",
-            "/api/checkins/"+id+"/original",r.getInt("reward_amount")),r.getString("fingerprint"),r.getString("original_path"),
+            r.getString("label"),r.getTimestamp("created_at").toInstant(),"/bird/v1/checkins/"+id+"/image",
+            "/bird/v1/checkins/"+id+"/original",r.getInt("reward_amount")),r.getString("fingerprint"),r.getString("original_path"),
             r.getString("result_path"),r.getString("original_type"));
     }
     private Row owned(String user,String id) {

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/bird/v1")
 public class WxAuthController {
     private final WxAuthService service;
     public WxAuthController(WxAuthService service) { this.service = service; }

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/supplies")
+@RequestMapping("/bird/v1/supplies")
 public class SupplyController {
     private final SupplyService service;
 

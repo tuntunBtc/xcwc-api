@@ -26,14 +26,14 @@ public class RequestGuard extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("X-Content-Type-Options", "nosniff");
-        String route = request.getRequestURI();
-        boolean cloud = request.getMethod().equals("POST") && route.startsWith("/api/me/pets/");
+        String route = request.getRequestURI().substring(request.getContextPath().length());
+        boolean cloud = request.getMethod().equals("POST") && route.startsWith("/bird/v1/me/pets/");
         boolean limited = cloud || route.endsWith("/claim") || route.endsWith("/adopt") ||
-            (request.getMethod().equals("POST") && (route.startsWith("/api/auth/") || route.equals("/api/admin/login") ||
-                route.equals("/api/checkins") || route.equals("/api/supplies/preview")));
+            (request.getMethod().equals("POST") && (route.startsWith("/bird/v1/auth/") || route.equals("/admin/v1/login") ||
+                route.equals("/bird/v1/checkins") || route.equals("/bird/v1/supplies/preview")));
         String ip = request.getRemoteAddr();
         if ((ip.equals("127.0.0.1") || ip.equals("0:0:0:0:0:0:0:1")) && request.getHeader("X-Real-IP") != null) ip = request.getHeader("X-Real-IP");
-        if (limited && !permit((cloud ? "cloud:" : "legacy:") + ip, cloud ? 120 : 20)) {
+        if (limited && !permit((cloud ? "cloud:" : "consumer:") + ip, cloud ? 120 : 20)) {
             response.setStatus(429);
             response.setHeader("Retry-After", "60");
             response.setContentType("application/json;charset=UTF-8");

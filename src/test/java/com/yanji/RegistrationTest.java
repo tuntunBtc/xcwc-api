@@ -41,7 +41,7 @@ class RegistrationTest {
         service.seedDemo();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bird", Integer.class)).isEqualTo(3);
         assertThat(service.mine(auth(owner)).getFirst().name()).isEqualTo("杭州小白");
-        mvc.perform(get("/api/birds/" + id)).andExpect(status().isOk())
+        mvc.perform(get("/bird/v1/birds/" + id)).andExpect(status().isOk())
             .andExpect(jsonPath("$.cityCode").value("hangzhou"))
             .andExpect(jsonPath("$.skinName").value("测试白色皮肤"));
     }
@@ -78,9 +78,9 @@ class RegistrationTest {
         assertThat(service.mine(auth(other))).isEmpty();
         assertThat(service.claim(auth(other), bird.id(), null, "我的鸟").name()).isEqualTo("我的鸟");
         assertThat(jdbc.queryForObject("SELECT claim_hash FROM bird", String.class)).isNotEqualTo(bird.claimCode());
-        mvc.perform(get("/api/birds/" + bird.id())).andExpect(status().isOk()).andExpect(jsonPath("$.claimed").value(false))
+        mvc.perform(get("/bird/v1/birds/" + bird.id())).andExpect(status().isOk()).andExpect(jsonPath("$.claimed").value(false))
             .andExpect(jsonPath("$.name").value("燕叽")).andExpect(jsonPath("$.claimHash").doesNotExist()).andExpect(jsonPath("$.ownerId").doesNotExist());
-        mvc.perform(get("/api/me/birds")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/bird/v1/me/birds")).andExpect(status().isUnauthorized());
         assertThat(service.mine(auth(service.login("owner", "password-12345")))).hasSize(1);
     }
 
@@ -103,30 +103,30 @@ class RegistrationTest {
     }
 
     @Test void apiPrefixAndUnknownRoutes() throws Exception {
-        mvc.perform(get("/api/health")).andExpect(status().isOk())
+        mvc.perform(get("/bird/v1/health")).andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("ok"));
-        mvc.perform(get("/api/me/birds")).andExpect(status().isUnauthorized())
+        mvc.perform(get("/bird/v1/me/birds")).andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value("LOGIN_REQUIRED"));
-        mvc.perform(get("/api/api/me/birds")).andExpect(status().isNotFound())
+        mvc.perform(get("/bird/v1/api/me/birds")).andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code").value("ENDPOINT_NOT_FOUND"));
-        mvc.perform(get("/api/does-not-exist")).andExpect(status().isNotFound())
+        mvc.perform(get("/bird/v1/does-not-exist")).andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code").value("ENDPOINT_NOT_FOUND"));
     }
 
     @Test void inputValidationAndErrors() throws Exception {
-        mvc.perform(post("/api/auth/register").contentType("application/json").content("{\"username\":\"bad\",\"password\":\"123\"}"))
+        mvc.perform(post("/bird/v1/auth/register").contentType("application/json").content("{\"username\":\"bad\",\"password\":\"123\"}"))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-        mvc.perform(get("/api/birds/unknown")).andExpect(status().isNotFound());
-        mvc.perform(post("/api/birds/unknown/claim").contentType("application/json").content("{\"code\":\"00000000000000000000000000000000\",\"name\":\"燕叽\"}"))
+        mvc.perform(get("/bird/v1/birds/unknown")).andExpect(status().isNotFound());
+        mvc.perform(post("/bird/v1/birds/unknown/claim").contentType("application/json").content("{\"code\":\"00000000000000000000000000000000\",\"name\":\"燕叽\"}"))
             .andExpect(status().isUnauthorized());
     }
 
     @Test void authenticationIsRateLimited() throws Exception {
         for (int index = 0; index < 20; index++) {
-            mvc.perform(post("/api/auth/login").with(request -> { request.setRemoteAddr("192.0.2.77"); return request; }).contentType("application/json").content("{}"))
+            mvc.perform(post("/bird/v1/auth/login").with(request -> { request.setRemoteAddr("192.0.2.77"); return request; }).contentType("application/json").content("{}"))
                 .andExpect(status().isBadRequest());
         }
-        mvc.perform(post("/api/auth/login").with(request -> { request.setRemoteAddr("192.0.2.77"); return request; }).contentType("application/json").content("{}"))
+        mvc.perform(post("/bird/v1/auth/login").with(request -> { request.setRemoteAddr("192.0.2.77"); return request; }).contentType("application/json").content("{}"))
             .andExpect(status().isTooManyRequests()).andExpect(header().string("Retry-After", "60"));
     }
 }

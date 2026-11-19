@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/bird/v1/auth")
 public class WxPhoneAuthController {
     private final WxPhoneAuthService service;
     public WxPhoneAuthController(WxPhoneAuthService service) { this.service = service; }

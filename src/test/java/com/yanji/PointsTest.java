@@ -108,11 +108,11 @@ class PointsTest {
         fails("SKIN_NOT_OWNED",()->points.equip(auth,bird,"lake_glow"));
         fails("OWNED_BIRD_NOT_FOUND",()->points.equip(other,bird,null));
         assertThat(points.history(auth,Long.MAX_VALUE)).isEmpty();
-        mvc.perform(post("/api/birds/"+bird+"/pet").header("Authorization",auth).contentType("application/json").content("{\"requestId\":\"bad\"}"))
+        mvc.perform(post("/bird/v1/birds/"+bird+"/pet").header("Authorization",auth).contentType("application/json").content("{\"requestId\":\"bad\"}"))
             .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/me/points/ledger").header("Authorization",auth).param("beforeId","bad"))
+        mvc.perform(get("/bird/v1/me/points/ledger").header("Authorization",auth).param("beforeId","bad"))
             .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/me/points")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/bird/v1/me/points")).andExpect(status().isUnauthorized());
     }
     @Test void failedSettlementRollsBackRewardCounter() {
         jdbc.update("UPDATE app_user SET points_balance=? WHERE id=?",Long.MAX_VALUE,user);

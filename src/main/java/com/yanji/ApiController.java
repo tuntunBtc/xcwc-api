@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/bird/v1")
 public class ApiController {
     private final RegistrationService service;
     public ApiController(RegistrationService service) { this.service = service; }

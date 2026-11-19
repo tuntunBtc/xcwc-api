@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/bird/v1")
 public class StepsController {
     private final WxRunService service;
     public StepsController(WxRunService service) { this.service = service; }

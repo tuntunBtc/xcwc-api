@@ -61,7 +61,7 @@ class BirdCodeTest {
         assertThat(found.id()).isEqualTo(a.id()); assertThat(found.ipCode()).isEqualTo("HY");
         assertThat(found.cityName()).isEqualTo("杭州"); assertThat(found.typeName()).isEqualTo("小黄莺");
         assertThat(found.skinId()).isEqualTo("factory_yellow"); assertThat(found.image()).isEqualTo("/assets/birds/yellow.png");
-        mvc.perform(get("/api/birds/by-code/"+a.birdCode()).header("If-None-Match","*")).andExpect(status().isOk())
+        mvc.perform(get("/bird/v1/birds/by-code/"+a.birdCode()).header("If-None-Match","*")).andExpect(status().isOk())
             .andExpect(header().string("Cache-Control","no-store")).andExpect(header().doesNotExist("ETag"))
             .andExpect(jsonPath("$.birdCode").value(a.birdCode())).andExpect(jsonPath("$.id").value(a.id()))
             .andExpect(jsonPath("$.name").value("小黄莺")).andExpect(jsonPath("$.ownerId").doesNotExist())
@@ -71,21 +71,21 @@ class BirdCodeTest {
     }
     @Test void oldIdsRemainUnchangedAndLookupCannotGuessMissingCodes() throws Exception {
         registration.seedDemo();
-        mvc.perform(get("/api/birds/00000000000000000000000000000001")).andExpect(status().isOk())
+        mvc.perform(get("/bird/v1/birds/00000000000000000000000000000001")).andExpect(status().isOk())
             .andExpect(jsonPath("$.birdCode").isEmpty()).andExpect(jsonPath("$.name").value("燕叽"));
-        mvc.perform(get("/api/birds/by-code/HZ-HY-1")).andExpect(status().isNotFound());
-        mvc.perform(get("/api/birds/by-code/hz-HY-1")).andExpect(status().isBadRequest());
-        mvc.perform(get("/api/birds/by-code/HZ-HY-9223372036854775808")).andExpect(status().isBadRequest());
-        mvc.perform(get("/api/birds/by-code/HZ-HY-01")).andExpect(status().isBadRequest());
+        mvc.perform(get("/bird/v1/birds/by-code/HZ-HY-1")).andExpect(status().isNotFound());
+        mvc.perform(get("/bird/v1/birds/by-code/hz-HY-1")).andExpect(status().isBadRequest());
+        mvc.perform(get("/bird/v1/birds/by-code/HZ-HY-9223372036854775808")).andExpect(status().isBadRequest());
+        mvc.perform(get("/bird/v1/birds/by-code/HZ-HY-01")).andExpect(status().isBadRequest());
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bird",Integer.class)).isEqualTo(3);
     }
     @Test void rejectsInactiveEntitiesAndUnconfirmedManufacturingData() throws Exception {
         var a=factory.create(spec());
         jdbc.update("UPDATE bird SET active=FALSE WHERE id=?",a.id());
-        mvc.perform(get("/api/birds/by-code/"+a.birdCode()).header("If-None-Match","*")).andExpect(status().isGone())
+        mvc.perform(get("/bird/v1/birds/by-code/"+a.birdCode()).header("If-None-Match","*")).andExpect(status().isGone())
             .andExpect(header().string("Cache-Control","no-store")).andExpect(header().doesNotExist("ETag"))
             .andExpect(jsonPath("$.code").value("BIRD_INACTIVE"));
-        mvc.perform(get("/api/birds/"+a.id())).andExpect(status().isGone());
+        mvc.perform(get("/bird/v1/birds/"+a.id())).andExpect(status().isGone());
         for(var bad:List.of(new BirdFactory.Spec("ZZ","HY","yellow","原色","/assets/yellow.png","batch"),
             new BirdFactory.Spec("HZ","YL","yellow","原色","/assets/yellow.png","batch"),
             new BirdFactory.Spec("HZ","HY","yellow","原色","https://example.com/a.png","batch")))

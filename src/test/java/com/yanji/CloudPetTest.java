@@ -42,6 +42,27 @@ class CloudPetTest {
     Map<String,Object> act(String action){return pets.act(auth,pet,cmd(key(),version(),action));}
     @SuppressWarnings("unchecked") int stat(Map<String,Object> r,String group,String name){return ((Number)((Map<String,Object>)pv(r).get(group)).get(name)).intValue();}
     PetSpark.Snapshot spark(Map<String,Object> r){return (PetSpark.Snapshot)pv(r).get("spark");}
+    @Test void adoptionAndCareCanRetryAcrossNamespaces() throws Exception {
+        String entity = users.provision().id();
+        String body = json.writeValueAsString(Map.of("birdId",entity,"nickname","小黄莺","requestId",key()));
+        var created = mvc.perform(post("/bird/v1/me/pets/adopt").header("Authorization",auth)
+                .contentType("application/json").content(body)).andExpect(status().isCreated()).andReturn().getResponse();
+        String id = json.readTree(created.getContentAsByteArray()).at("/pet/petId").asText();
+        assertThat(created.getHeader("Location")).isEqualTo("/bird/v1/me/pets/"+id);
+        mvc.perform(post("/bird/v1/me/pets/adopt").header("Authorization",auth).contentType("application/json").content(body))
+            .andExpect(status().isOk()).andExpect(header().string("Location","/bird/v1/me/pets/"+id))
+            .andExpect(jsonPath("$.replayed").value(true)).andExpect(jsonPath("$.pet.petId").value(id));
+        String version = json.readTree(created.getContentAsByteArray()).at("/pet/version").asText();
+        String command = json.writeValueAsString(Map.of("action","FEED","expectedVersion",version,"requestId",key()));
+        String resource = "/me/pets/"+id;
+        mvc.perform(post("/bird/v1"+resource+"/actions").header("Authorization",auth).contentType("application/json").content(command))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.pet.inventory.food").value(2));
+        mvc.perform(post("/bird/v1"+resource+"/actions").header("Authorization",auth).contentType("application/json").content(command))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.replayed").value(true))
+            .andExpect(jsonPath("$.pet.inventory.food").value(2));
+        mvc.perform(get("/bird/v1"+resource).header("Authorization",auth)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.pet.inventory.food").value(2));
+    }
     @Test void restoresSharedIdentityIndependentPetsAndInitialInventoryOnce(){
         String secondAuth="Bearer "+users.issueSessionForUser(user).token();
         assertThat(pets.detail(secondAuth,pet)).isEqualTo(pets.detail(auth,pet));
@@ -101,7 +122,7 @@ class CloudPetTest {
     }
 
     @Test void sparkUsesOnlyEffectiveCareAndServerBusinessDate() throws Exception {
-        mvc.perform(get("/api/me/pets/" + pet).header("Authorization", auth))
+        mvc.perform(get("/bird/v1/me/pets/" + pet).header("Authorization", auth))
             .andExpect(status().isOk()).andExpect(jsonPath("$.pet.ruleVersion").value("normal-v1"))
             .andExpect(jsonPath("$.pet.sparkRuleVersion").value("spark-v1"))
             .andExpect(jsonPath("$.pet.spark.status").value("UNLIT"))
@@ -189,10 +210,10 @@ class CloudPetTest {
         assertThatThrownBy(()->pets.act(auth,pet,cmd(id,v,"FEED"))).isInstanceOf(RegistrationService.Failure.class);
         assertThat(version()).isEqualTo(v);
         assertThatThrownBy(()->pets.operation(auth,id)).isInstanceOf(RegistrationService.Failure.class);
-        mvc.perform(post("/api/me/pets/"+pet+"/actions").header("Authorization",auth).contentType("application/json")
+        mvc.perform(post("/bird/v1/me/pets/"+pet+"/actions").header("Authorization",auth).contentType("application/json")
             .content("{\"requestId\":\""+key()+"\",\"expectedVersion\":\""+v+"\",\"action\":\"PET\",\"points\":999}"))
             .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/me/pets")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/bird/v1/me/pets")).andExpect(status().isUnauthorized());
     }
     @Test void appIdsHaveIndependentExactIdentities(){
         String openid="fixture_"+users.randomKey(8);
@@ -275,8 +296,8 @@ class CloudPetTest {
         String uid=users.userId(token), oldBird=users.provision().id();
         String oldPet=users.adopt(token,oldBird,key(),"Old").bindingId();
         for(int i=0;i<2;i++) {
-            mvc.perform(get("/api/me/pets").header("Authorization",token)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CLOUD_INITIALIZATION_REQUIRED"));
-            mvc.perform(head("/api/me/pets/"+oldPet).header("Authorization",token)).andExpect(status().isConflict());
+            mvc.perform(get("/bird/v1/me/pets").header("Authorization",token)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CLOUD_INITIALIZATION_REQUIRED"));
+            mvc.perform(head("/bird/v1/me/pets/"+oldPet).header("Authorization",token)).andExpect(status().isConflict());
         }
         assertThat(jdbc.queryForObject("SELECT cloud_pet_enabled FROM app_user WHERE id=?",Boolean.class,uid)).isFalse();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM pet_state WHERE binding_id=?",Integer.class,oldPet)).isZero();
@@ -289,25 +310,25 @@ class CloudPetTest {
         }
         var before=jdbc.queryForMap("SELECT * FROM pet_state WHERE binding_id=?",oldPet);
         time=time.plusSeconds(7200);
-        mvc.perform(get("/api/me/pets").header("Authorization",token)).andExpect(status().isOk());
-        mvc.perform(head("/api/me/pets/"+oldPet).header("Authorization",token)).andExpect(status().isOk());
+        mvc.perform(get("/bird/v1/me/pets").header("Authorization",token)).andExpect(status().isOk());
+        mvc.perform(head("/bird/v1/me/pets/"+oldPet).header("Authorization",token)).andExpect(status().isOk());
         pets.initializeAccount(token);
         assertThat(jdbc.queryForMap("SELECT * FROM pet_state WHERE binding_id=?",oldPet)).isEqualTo(before);
         assertThat(pets.inventoryHistory(token,oldPet,Long.MAX_VALUE)).hasSize(1);
         assertThat(points.wallet(token).balance()).isEqualTo(balance);
     }
     @Test void httpCreationAndAuthenticationSemantics() throws Exception {
-        mvc.perform(get("/api/me/pets")).andExpect(status().isUnauthorized())
+        mvc.perform(get("/bird/v1/me/pets")).andExpect(status().isUnauthorized())
             .andExpect(header().string("WWW-Authenticate","Bearer realm=\"xcwc\""));
         String id=key(),newBird=users.provision().id();
         String body="{\"requestId\":\""+id+"\",\"birdId\":\""+newBird+"\",\"nickname\":\"New\"}";
-        var first=mvc.perform(post("/api/me/pets/adopt").header("Authorization",auth).contentType("application/json").content(body))
+        var first=mvc.perform(post("/bird/v1/me/pets/adopt").header("Authorization",auth).contentType("application/json").content(body))
             .andExpect(status().isCreated()).andExpect(header().exists("Location")).andReturn();
         String location=first.getResponse().getHeader("Location");
         mvc.perform(get(location).header("Authorization",auth)).andExpect(status().isOk());
-        mvc.perform(post("/api/me/pets/adopt").header("Authorization",auth).contentType("application/json").content(body))
+        mvc.perform(post("/bird/v1/me/pets/adopt").header("Authorization",auth).contentType("application/json").content(body))
             .andExpect(status().isOk()).andExpect(header().string("Location",location)).andExpect(jsonPath("$.replayed").value(true));
-        mvc.perform(post("/api/me/pets/adopt").header("Authorization",auth).contentType("application/json").content(body.replace(id,key())))
+        mvc.perform(post("/bird/v1/me/pets/adopt").header("Authorization",auth).contentType("application/json").content(body.replace(id,key())))
             .andExpect(status().isOk()).andExpect(jsonPath("$.created").value(false));
     }
 

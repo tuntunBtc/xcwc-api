@@ -16,7 +16,7 @@ import org.springframework.web.context.request.WebRequest;
 
 /** Public, read-only catalog. No account, order or payment operations. */
 @RestController
-@RequestMapping(value = "/api/shop", produces = "application/json")
+@RequestMapping(value = "/bird/v1/shop", produces = "application/json")
 public class ShopController {
     private static final String PUBLIC_CACHE = "public, max-age=60, must-revalidate";
     private final ShopCatalogService catalog;

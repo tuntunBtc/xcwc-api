@@ -38,7 +38,7 @@ class StepsApiTest {
     }
 
     JsonNode loginResult() throws Exception {
-        String body = mvc.perform(post("/api/auth/wx-login").contentType("application/json").content("{\"code\":\"DEBUG_CODE\"}"))
+        String body = mvc.perform(post("/bird/v1/auth/wx-login").contentType("application/json").content("{\"code\":\"DEBUG_CODE\"}"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return mapper.readTree(body);
     }
@@ -63,7 +63,7 @@ class StepsApiTest {
             Instant.now().plus(7, java.time.temporal.ChronoUnit.DAYS));
         assertThat(jdbc.queryForObject("SELECT expires_at FROM auth_session WHERE token_hash=?",
             java.sql.Timestamp.class, RegistrationService.digest(firstToken)).toInstant()).isEqualTo(expiresAt);
-        mvc.perform(get("/api/auth/session").header("Authorization", "Bearer " + firstToken))
+        mvc.perform(get("/bird/v1/auth/session").header("Authorization", "Bearer " + firstToken))
             .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
             .andExpect(jsonPath("$.userId").value(user))
             .andExpect(jsonPath("$.expiresAt").value(first.path("expiresAt").asText()))
@@ -73,23 +73,23 @@ class StepsApiTest {
 
         String otherUser = registration.ensureUserByOpenid("identity-fixture-" + UUID.randomUUID());
         String otherToken = registration.issueSessionForUser(otherUser).token();
-        mvc.perform(get("/api/auth/session").param("userId", user).header("Authorization", "Bearer " + otherToken))
+        mvc.perform(get("/bird/v1/auth/session").param("userId", user).header("Authorization", "Bearer " + otherToken))
             .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(otherUser));
-        mvc.perform(get("/api/auth/session").param("userId", user))
+        mvc.perform(get("/bird/v1/auth/session").param("userId", user))
             .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.userId").doesNotExist());
 
         jdbc.update("UPDATE auth_session SET expires_at=? WHERE token_hash=?",
             java.sql.Timestamp.from(Instant.now().minusSeconds(60)), RegistrationService.digest(firstToken));
-        mvc.perform(get("/api/auth/session").header("Authorization", "Bearer " + firstToken))
+        mvc.perform(get("/bird/v1/auth/session").header("Authorization", "Bearer " + firstToken))
             .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.userId").doesNotExist());
         JsonNode renewed = loginResult();
         assertThat(renewed.path("userId").asText()).isEqualTo(user);
         assertThat(renewed.path("token").asText()).isNotEqualTo(firstToken).isNotEqualTo(secondToken);
-        mvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + renewed.path("token").asText()))
+        mvc.perform(post("/bird/v1/auth/logout").header("Authorization", "Bearer " + renewed.path("token").asText()))
             .andExpect(status().isNoContent());
-        mvc.perform(get("/api/auth/session").header("Authorization", "Bearer " + renewed.path("token").asText()))
+        mvc.perform(get("/bird/v1/auth/session").header("Authorization", "Bearer " + renewed.path("token").asText()))
             .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/auth/session").header("Authorization", "Bearer " + secondToken))
+        mvc.perform(get("/bird/v1/auth/session").header("Authorization", "Bearer " + secondToken))
             .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(user))
             .andExpect(jsonPath("$.expiresAt").value(second.path("expiresAt").asText()));
     }
@@ -107,13 +107,13 @@ class StepsApiTest {
         String low = werunCipher(todayTs, 999, props.appId);
         String req = "abc123ABC-xyz_0123456789";
 
-        mvc.perform(post("/api/steps/redeem").header("Authorization", "Bearer " + token)
+        mvc.perform(post("/bird/v1/steps/redeem").header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .content("{\"encryptedData\":\"" + low + "\",\"iv\":\"" + IV + "\",\"requestId\":\"" + req + "\"}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.granted").value(0))
             .andExpect(jsonPath("$.claimed").value(false));
 
-        String r1 = mvc.perform(post("/api/steps/redeem").header("Authorization", "Bearer " + token)
+        String r1 = mvc.perform(post("/bird/v1/steps/redeem").header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .content("{\"encryptedData\":\"" + cipher + "\",\"iv\":\"" + IV + "\",\"requestId\":\"" + req + "\"}"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -123,7 +123,7 @@ class StepsApiTest {
         assertThat(j1.get("claimed").asBoolean()).isTrue();
 
         // 同 request_id 重复提交：replayed，不重复发分
-        String r2 = mvc.perform(post("/api/steps/redeem").header("Authorization", "Bearer " + token)
+        String r2 = mvc.perform(post("/bird/v1/steps/redeem").header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .content("{\"encryptedData\":\"" + cipher + "\",\"iv\":\"" + IV + "\",\"requestId\":\"" + req + "\"}"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -132,7 +132,7 @@ class StepsApiTest {
         assertThat(j2.get("claimed").asBoolean()).isTrue();
 
         // 不同 request_id 同日再兑：同日守卫，仍 claimed，余额不变
-        String r3 = mvc.perform(post("/api/steps/redeem").header("Authorization", "Bearer " + token)
+        String r3 = mvc.perform(post("/bird/v1/steps/redeem").header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .content("{\"encryptedData\":\"" + low + "\",\"iv\":\"" + IV + "\",\"requestId\":\"other_req_0123456789ABCDE\"}"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -142,7 +142,7 @@ class StepsApiTest {
     }
 
     @Test void wechatOnlyAccountAndPerTokenSession() throws Exception {
-        mvc.perform(post("/api/auth/wx-login").contentType("application/json").content("{\"code\":\" \"}"))
+        mvc.perform(post("/bird/v1/auth/wx-login").contentType("application/json").content("{\"code\":\" \"}"))
             .andExpect(status().isBadRequest());
         String first = token();
         String second = token();
@@ -150,7 +150,7 @@ class StepsApiTest {
         String user = registration.userId("Bearer " + first);
         assertThat(registration.userId("Bearer " + second)).isEqualTo(user);
         String username = jdbc.queryForObject("SELECT username FROM app_user WHERE id=?", String.class, user);
-        mvc.perform(post("/api/auth/login").contentType("application/json")
+        mvc.perform(post("/bird/v1/auth/login").contentType("application/json")
                 .content(mapper.writeValueAsString(java.util.Map.of("username", username, "password", "not-a-user-password"))))
             .andExpect(status().isUnauthorized());
         assertThat(sessions.sessionKey(first)).isNotBlank();
@@ -174,14 +174,14 @@ class StepsApiTest {
         String token = token();
         long todayTs = LocalDate.now(SHANGHAI).atStartOfDay(SHANGHAI).toEpochSecond();
         String cipher = werunCipher(todayTs, 8600, "wrong-appid");
-        mvc.perform(post("/api/steps/redeem").header("Authorization", "Bearer " + token)
+        mvc.perform(post("/bird/v1/steps/redeem").header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .content("{\"encryptedData\":\"" + cipher + "\",\"iv\":\"" + IV + "\",\"requestId\":\"wm_0123456789ABCDE\"}"))
             .andExpect(status().isBadRequest());
     }
 
     @Test void unauthorizedWithoutToken() throws Exception {
-        mvc.perform(post("/api/steps/redeem").contentType("application/json")
+        mvc.perform(post("/bird/v1/steps/redeem").contentType("application/json")
                 .content("{\"encryptedData\":\"x\",\"iv\":\"" + IV + "\",\"requestId\":\"z0123456789ABCDE\"}"))
             .andExpect(status().isUnauthorized());
     }
@@ -191,7 +191,7 @@ class StepsApiTest {
         String auth = newProgressSession(user);
         LocalDate date = LocalDate.now(SHANGHAI);
         String request = "v2_grant_increment_0001";
-        mvc.perform(post("/api/steps/redeem").header("Authorization", auth)
+        mvc.perform(post("/bird/v1/steps/redeem").header("Authorization", auth)
                 .contentType("application/json").content(mapper.writeValueAsString(java.util.Map.of(
                     "encryptedData", werunCipher(date.atStartOfDay(SHANGHAI).toEpochSecond(), 1600, props.appId),
                     "iv", IV, "requestId", "legacy_grant_progress_01"))))
@@ -219,7 +219,7 @@ class StepsApiTest {
         assertThat(extra.path("stepPointsRedeemed").asInt()).isEqualTo(12);
         assertThat(progress("redeem-v2", auth, date, 12800, "v2_grant_increment_0003").path("granted").asInt()).isZero();
         assertThat(jdbc.queryForObject("SELECT points_balance FROM app_user WHERE id=?", Long.class, user)).isEqualTo(12L);
-        mvc.perform(post("/api/steps/redeem-v2").header("Authorization", auth).contentType("application/json")
+        mvc.perform(post("/bird/v1/steps/redeem-v2").header("Authorization", auth).contentType("application/json")
                 .content(mapper.writeValueAsString(java.util.Map.of(
                     "encryptedData", werunCipher(date.atStartOfDay(SHANGHAI).toEpochSecond(), 13000, props.appId),
                     "iv", IV, "requestId", "v2_grant_increment_0004", "expectedDate", date.minusDays(1).toString()))))
@@ -261,7 +261,7 @@ class StepsApiTest {
             body.put("requestId", requestId);
             body.put("expectedDate", day.toString());
         }
-        return mapper.readTree(mvc.perform(post("/api/steps/" + route).header("Authorization", auth)
+        return mapper.readTree(mvc.perform(post("/bird/v1/steps/" + route).header("Authorization", auth)
                 .contentType("application/json").content(mapper.writeValueAsString(body)))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
     }
@@ -272,7 +272,7 @@ class StepsApiTest {
              "birdCode":"HZ-HY-9000000000000000001","expectedDate":"2026-11-10"}
             """;
         for (String operation : java.util.List.of("preview", "claim")) {
-            mvc.perform(post("/api/supplies/" + operation).contentType("application/json").content(body))
+            mvc.perform(post("/bird/v1/supplies/" + operation).contentType("application/json").content(body))
                 .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("SUPPLY_DISABLED"));
         }
     }

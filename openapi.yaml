@@ -1,22 +1,22 @@
 openapi: 3.0.3
 info:
-  title: XCWC 小程序与运营后台 API
-  version: 0.7.1
-  description: XCWC H5：账号密码会话、多账号实体领养和免费立即孵化、叽分与受控合照。保持旧内部 ID；隐藏码不再参与领养。请求 Content-Type
+  title: XCWH 小程序与运营后台 API
+  version: 1.0.0
+  description: XCWH H5：账号密码会话、多账号实体领养和免费立即孵化、叽分与受控合照。保持旧内部 ID；隐藏码不再参与领养。请求 Content-Type
     不受支持时返回 415 和 UNSUPPORTED_MEDIA_TYPE，不视为服务端故障。 小程序云端宠物 GET 为业务只读；未初始化返回 CLOUD_INITIALIZATION_REQUIRED，显式
     POST /me/pets/initialize 后重读。 2026-11-14 增加独立管理鉴权、内容发布、素材与账号永久装扮权益；与商品展示无自动关联。
 servers:
-- url: http://127.0.0.1:8080/api
-  description: 本地联调地址；生产用同源 HTTPS /api
+- url: /
+  description: 使用目标环境的源站。管理接口使用受保护的后台 IP，小鸟接口使用 API 域名；测试后端由网关在路径前加 /test。已发布清单的不可变素材地址仍为 /bird/v1/content/assets/{id}。
 paths:
-  /me/pets:
+  /bird/v1/me/pets:
     get:
       operationId: listCloudPets
       summary: listCloudPets
       description: 业务只读，包括 HEAD；仅计算服务端时间衰减投影，不创建库存、流水或开启云端标记。账号或可信绑定未初始化返回 409 CLOUD_INITIALIZATION_REQUIRED。
-      security:
+      security: &listCloudPetsSecurity
       - bearer: []
-      responses:
+      responses: &listCloudPetsResponses
         '200':
           description: Server-authoritative result
           content:
@@ -52,16 +52,16 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &listCloudPetsTags
       - 云端养成
-  /me/pets/{petId}:
+  /bird/v1/me/pets/{petId}:
     get:
       operationId: getCloudPet
       summary: getCloudPet
       description: 业务只读，包括 HEAD；仅计算服务端时间衰减投影，不创建库存、流水或开启云端标记。账号或可信绑定未初始化返回 409 CLOUD_INITIALIZATION_REQUIRED。
-      security:
+      security: &getCloudPetSecurity
       - bearer: []
-      responses:
+      responses: &getCloudPetResponses
         '200':
           description: Server-authoritative result
           content:
@@ -97,7 +97,7 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      parameters:
+      parameters: &getCloudPetParameters
       - &id001
         name: petId
         in: path
@@ -105,18 +105,18 @@ paths:
         schema:
           type: string
           pattern: ^[0-9a-f]{32}$
-      tags:
+      tags: &getCloudPetTags
       - 云端养成
-  /me/pets/adopt:
+  /bird/v1/me/pets/adopt:
     post:
       operationId: adoptCloudPet
       summary: adoptCloudPet
       description: Explicit confirmation only; account/entity unique binding, free
         immediate hatch and initial inventory in one transaction. Request IDs are
         unique within cloud operations per account.
-      security:
+      security: &adoptCloudPetSecurity
       - bearer: []
-      responses:
+      responses: &adoptCloudPetResponses
         '200':
           description: 已有资源或幂等重放；不重复发放权益
           content:
@@ -168,15 +168,15 @@ paths:
               description: 本人可读取的资源详情相对 URI
               schema:
                 type: string
-      requestBody:
+      requestBody: &adoptCloudPetRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CloudAdoption'
-      tags:
+      tags: &adoptCloudPetTags
       - 云端养成
-  /me/pets/{petId}/actions:
+  /bird/v1/me/pets/{petId}/actions:
     post:
       operationId: operateCloudPet
       summary: operateCloudPet
@@ -187,9 +187,9 @@ paths:
         succeeds. Account supplies once per Shanghai day, also honoring legacy receipt
         eligibility. Replayed snapshots are historical: fetch current state before
         replacing UI.'
-      security:
+      security: &operateCloudPetSecurity
       - bearer: []
-      responses:
+      responses: &operateCloudPetResponses
         '200':
           description: Server-authoritative result
           content:
@@ -225,25 +225,25 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      requestBody:
+      requestBody: &operateCloudPetRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CloudAction'
-      parameters:
+      parameters: &operateCloudPetParameters
       - *id001
-      tags:
+      tags: &operateCloudPetTags
       - 云端养成
-  /me/operations/{requestId}:
+  /bird/v1/me/operations/{requestId}:
     get:
       operationId: getCloudOperation
       summary: getCloudOperation
       description: 404 does not prove a concurrent transaction failed; retry the same
         command ID/body. Receipts are not automatically expired.
-      security:
+      security: &getCloudOperationSecurity
       - bearer: []
-      responses:
+      responses: &getCloudOperationResponses
         '200':
           description: Server-authoritative result
           content:
@@ -279,25 +279,25 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      parameters:
+      parameters: &getCloudOperationParameters
       - name: requestId
         in: path
         required: true
         schema:
           type: string
           pattern: ^[A-Za-z0-9_-]{16,64}$
-      tags:
+      tags: &getCloudOperationTags
       - 云端养成
-  /me/pets/{petId}/inventory-ledger:
+  /bird/v1/me/pets/{petId}/inventory-ledger:
     get:
       operationId: getCloudInventoryLedger
       summary: getCloudInventoryLedger
       description: At most 50 entries; continue using last id as exclusive beforeId.
         保留数组响应兼容；每页最多 50 条，使用末条 id/date 作为下一页 beforeId/beforeDate，排除边界；不足 50 条结束，恰好
         50 条可继续请求至空页。
-      security:
+      security: &getCloudInventoryLedgerSecurity
       - bearer: []
-      responses:
+      responses: &getCloudInventoryLedgerResponses
         '200':
           description: Server-authoritative result
           content:
@@ -335,7 +335,7 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      parameters:
+      parameters: &getCloudInventoryLedgerParameters
       - *id001
       - name: beforeId
         in: query
@@ -343,18 +343,18 @@ paths:
           type: integer
           format: int64
           default: 9223372036854775807
-      tags:
+      tags: &getCloudInventoryLedgerTags
       - 云端养成
-  /me/supply-claims:
+  /bird/v1/me/supply-claims:
     get:
       operationId: getCloudSupplyClaims
       summary: getCloudSupplyClaims
       description: At most 50 entries; exclusive date cursor. Legacy local receipts
         never become cloud inventory. 保留数组响应兼容；每页最多 50 条，使用末条 id/date 作为下一页 beforeId/beforeDate，排除边界；不足
         50 条结束，恰好 50 条可继续请求至空页。
-      security:
+      security: &getCloudSupplyClaimsSecurity
       - bearer: []
-      responses:
+      responses: &getCloudSupplyClaimsResponses
         '200':
           description: Server-authoritative result
           content:
@@ -392,20 +392,20 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      parameters:
+      parameters: &getCloudSupplyClaimsParameters
       - name: beforeDate
         in: query
         schema:
           type: string
           format: date
           default: '9999-12-31'
-      tags:
+      tags: &getCloudSupplyClaimsTags
       - 云端养成
-  /health:
+  /bird/v1/health:
     get:
       operationId: health
       summary: 进程存活检查，不保证数据库健康
-      responses:
+      responses: &healthResponses
         '200':
           description: 正常
           content:
@@ -417,16 +417,16 @@ paths:
                     type: string
                     enum:
                     - ok
-      tags:
+      tags: &healthTags
       - 实体与历史领养
-  /analytics/page-view:
+  /bird/v1/analytics/page-view:
     post:
       operationId: recordPageView
       summary: 记录匿名页面浏览与浏览器 UA
       description: 仅记录允许的页面代码、随机会话标识摘要、User-Agent 与服务端时间；不记录 IP 或账号。记录按北京时间汇总，保存 90
         天。
-      security: []
-      requestBody:
+      security: &recordPageViewSecurity []
+      requestBody: &recordPageViewRequestBody
         required: true
         content:
           application/json:
@@ -452,22 +452,22 @@ paths:
                   type: string
                   pattern: ^[a-f0-9]{32}$
                   description: 浏览器标签页会话随机值；服务端仅存其 SHA-256 摘要。
-      responses:
+      responses: &recordPageViewResponses
         '204':
           description: 已记录
         '400':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &recordPageViewTags
       - 访问统计
-  /admin/analytics:
+  /admin/v1/bird/analytics:
     get:
       operationId: getAnalyticsSummary
       summary: 查询访问统计后台汇总
       description: 需提供 ANALYTICS_ADMIN_TOKEN 配置的 Bearer 密钥。日期为北京时间自然日，查询范围最多 90 天；最近
         UA 最多返回 100 条。
-      security:
+      security: &getAnalyticsSummarySecurity
       - analyticsAdmin: []
-      parameters:
+      parameters: &getAnalyticsSummaryParameters
       - name: from
         in: query
         required: false
@@ -480,7 +480,7 @@ paths:
         schema:
           type: string
           format: date
-      responses:
+      responses: &getAnalyticsSummaryResponses
         '200':
           description: 统计汇总与近期 UA
           content:
@@ -553,15 +553,15 @@ paths:
                     type: string
         '503':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &getAnalyticsSummaryTags
       - 访问统计
-  /auth/register:
+  /bird/v1/auth/register:
     post:
       operationId: register
       summary: 创建独立账号并登录
-      requestBody:
+      requestBody: &registerRequestBody
         $ref: '#/components/requestBodies/Credentials'
-      responses:
+      responses: &registerResponses
         '415':
           $ref: '#/components/responses/Error'
         '201':
@@ -572,15 +572,15 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &registerTags
       - 账号与认证
-  /auth/login:
+  /bird/v1/auth/login:
     post:
       operationId: login
       summary: 登录并签发七天有效的随机会话令牌
-      requestBody:
+      requestBody: &loginRequestBody
         $ref: '#/components/requestBodies/Credentials'
-      responses:
+      responses: &loginResponses
         '415':
           $ref: '#/components/responses/Error'
         '200':
@@ -591,17 +591,17 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &loginTags
       - 账号与认证
-  /auth/wx-login:
+  /bird/v1/auth/wx-login:
     post:
       operationId: wechatLogin
       summary: 用小程序临时登录码签发七天有效的会话令牌
       description: 服务端校验微信临时登录码后创建或复用数据库中的内部用户，返回稳定 userId、令牌及其固定七天到期时间。同一微信身份重新登录复用
         userId，各次会话令牌独立。身份按 AppID + OpenID 精确隔离；旧数据 AppID 须明确核实后迁移，不自动合并跨应用身份。OpenID
         和微信会话密钥不返回客户端。userId 可用于隔离本机缓存，不是鉴权凭证；后续请求以 Bearer 令牌解析的用户为准。
-      security: []
-      requestBody:
+      security: &wechatLoginSecurity []
+      requestBody: &wechatLoginRequestBody
         required: true
         content:
           application/json:
@@ -614,7 +614,7 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 512
-      responses:
+      responses: &wechatLoginResponses
         '200':
           description: 微信会话令牌、内部用户 ID 与 UTC 到期时间
           content:
@@ -645,17 +645,17 @@ paths:
           $ref: '#/components/responses/Error'
         '503':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &wechatLoginTags
       - 账号与认证
-  /auth/wx-phone-login:
+  /bird/v1/auth/wx-phone-login:
     post:
       operationId: loginWechatPhone
       summary: 微信授权一键手机号登录
       description: 提交 wx.login 的 code 和 getPhoneNumber 授权事件的独立 phoneCode。 后端向微信验证身份和手机号后，复用
         AppID + OpenID 对应的内部用户及宠物存档。 不接受客户端手机号作为验证依据，不因两个微信身份使用同一手机号而合并账号。 已有账号只更新经验证的手机号，不迁移或补发资产。授权码不可重放；失败应重新授权。
         手机号仅在受控数据库保存，响应仅返回掩码；完整号码、OpenID、session_key 和 access_token 不下发。
-      security: []
-      requestBody:
+      security: &loginWechatPhoneSecurity []
+      requestBody: &loginWechatPhoneRequestBody
         required: true
         content:
           application/json:
@@ -675,7 +675,7 @@ paths:
                   minLength: 1
                   maxLength: 512
                   description: getPhoneNumber 授权回调中的 code，与身份码不同
-      responses:
+      responses: &loginWechatPhoneResponses
         '200':
           description: 复用原用户的登录会话及手机号掩码
           content:
@@ -711,16 +711,16 @@ paths:
           $ref: '#/components/responses/Error'
         '503':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &loginWechatPhoneTags
       - 账号与认证
-  /steps/redeem:
+  /bird/v1/steps/redeem:
     post:
       operationId: redeemWechatSteps
       summary: 校验当日微信运动密文并结算叽分
       description: 同一账号在北京时间同一自然日只结算一次。同日重试返回已有额度，不再次入账。
-      security:
+      security: &redeemWechatStepsSecurity
       - bearer: []
-      requestBody:
+      requestBody: &redeemWechatStepsRequestBody
         required: true
         content:
           application/json:
@@ -742,7 +742,7 @@ paths:
                 requestId:
                   type: string
                   pattern: ^[A-Za-z0-9_-]{16,64}$
-      responses:
+      responses: &redeemWechatStepsResponses
         '200':
           description: 当日结算结果。步数不足且未结算时 granted 为 0，claimed 为 false。
           content:
@@ -789,22 +789,22 @@ paths:
                     type: string
         '409':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &redeemWechatStepsTags
       - 微信运动与历史补给
-  /steps/preview-v2:
+  /bird/v1/steps/preview-v2:
     post:
       operationId: previewWechatStepProgress
       summary: 预览当日微信步数与可兑换叽分
       description: 以北京时间自然日为准。每累计 1,000 步可兑换 1 叽分，已兑换档位按账号扣除。预览不入账。
-      security:
+      security: &previewWechatStepProgressSecurity
       - bearer: []
-      requestBody:
+      requestBody: &previewWechatStepProgressRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/WechatStepProgressRequest'
-      responses:
+      responses: &previewWechatStepProgressResponses
         '200':
           description: 当日步数与兑换进度。预览的 granted 固定为 0。
           content:
@@ -815,16 +815,16 @@ paths:
           $ref: '#/components/responses/Error'
         '401':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &previewWechatStepProgressTags
       - 微信运动与历史补给
-  /steps/redeem-v2:
+  /bird/v1/steps/redeem-v2:
     post:
       operationId: redeemWechatStepProgress
       summary: 领取当日微信步数新增的可兑换叽分
       description: 领取时用最新微信运动密文校验步数，按账号发放所有尚未兑换的完整千步档。同一账号当日可多次领取，不扣普通摸摸额度。重试已入账的 requestId 返回原入账数，不重复入账。日期变化时返回 STEPS_DAY_CHANGED，请重新读取步数。
-      security:
+      security: &redeemWechatStepProgressSecurity
       - bearer: []
-      requestBody:
+      requestBody: &redeemWechatStepProgressRequestBody
         required: true
         content:
           application/json:
@@ -841,7 +841,7 @@ paths:
                     type: string
                     format: date
                     description: 最近读取返回的北京时间日期
-      responses:
+      responses: &redeemWechatStepProgressResponses
         '200':
           description: 当次入账数与结算后的当日进度。没有新增完整千步档时 granted 为 0。
           content:
@@ -854,22 +854,22 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &redeemWechatStepProgressTags
       - 微信运动与历史补给
-  /supplies/preview:
+  /bird/v1/supplies/preview:
     post:
       operationId: previewWechatSupplies
       summary: 读取微信运动当日步数及补给状态
       description: 预览不发放补给。达标且当日尚无领取记录时，仅有效小鸟可显示为可领取。仅同一本机安装与同一只小鸟可以读回既有回执。
-      security:
+      security: &previewWechatSuppliesSecurity
       - bearer: []
-      requestBody:
+      requestBody: &previewWechatSuppliesRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/WechatSupplyRequest'
-      responses:
+      responses: &previewWechatSuppliesResponses
         '200':
           $ref: '#/components/responses/WechatSupplyResult'
         '400':
@@ -901,16 +901,16 @@ paths:
           $ref: '#/components/responses/Error'
         '503':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &previewWechatSuppliesTags
       - 微信运动与历史补给
-  /supplies/claim:
+  /bird/v1/supplies/claim:
     post:
       operationId: claimWechatSupplies
       summary: 确认领取微信运动当日补给
       description: 按微信账号和北京时间自然日最多发放一次。断网或超时后，同日用相同安装标识和小鸟编码重试可取回原回执。跨日返回 SUPPLY_DAY_CHANGED，需先重新预览。此接口不会发放叽分。
-      security:
+      security: &claimWechatSuppliesSecurity
       - bearer: []
-      requestBody:
+      requestBody: &claimWechatSuppliesRequestBody
         required: true
         content:
           application/json:
@@ -925,7 +925,7 @@ paths:
                     type: string
                     format: date
                     description: 领取前最后一次预览返回的北京时间日期
-      responses:
+      responses: &claimWechatSuppliesResponses
         '200':
           $ref: '#/components/responses/WechatSupplyResult'
         '400':
@@ -959,15 +959,15 @@ paths:
           $ref: '#/components/responses/Error'
         '503':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &claimWechatSuppliesTags
       - 微信运动与历史补给
-  /auth/logout:
+  /bird/v1/auth/logout:
     post:
       operationId: logout
       summary: 撤销当前令牌
-      security:
+      security: &logoutSecurity
       - bearer: []
-      responses:
+      responses: &logoutResponses
         '204':
           description: 已撤销
         '401':
@@ -991,15 +991,15 @@ paths:
                     type: string
         '429':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &logoutTags
       - 账号与认证
-  /birds/{id}:
-    parameters:
+  /bird/v1/birds/{id}:
+    parameters: &pathParams20
     - $ref: '#/components/parameters/BirdId'
     get:
       operationId: publicBird
       summary: 查询只读实体资料；不暴露其他账号绑定
-      responses:
+      responses: &publicBirdResponses
         '200':
           description: 公开名称为角色名称或旧燕叽，claimed 恒 false，claimedAt 为 null；本人绑定需另查
           content:
@@ -1010,10 +1010,10 @@ paths:
           $ref: '#/components/responses/Error'
         '410':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &publicBirdTags
       - 实体与历史领养
-  /birds/by-code/{birdCode}:
-    parameters:
+  /bird/v1/birds/by-code/{birdCode}:
+    parameters: &pathParams21
     - name: birdCode
       in: path
       required: true
@@ -1026,7 +1026,7 @@ paths:
       operationId: publicBirdByCode
       summary: 按城市-IP CODE-雪花ID查询已建档小鸟，返回内部 birdId 和只读出厂资料
       description: 仅查询，不自动建档、绑定、发蛋或孵化。IP 字典和皮肤由数据库确定，不信任前端解析。
-      responses:
+      responses: &publicBirdByCodeResponses
         '200':
           description: 成功；id 仍为旧格式内部 ID，birdCode 为 NFC 对外编码
           content:
@@ -1039,19 +1039,19 @@ paths:
           $ref: '#/components/responses/Error'
         '410':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &publicBirdByCodeTags
       - 实体与历史领养
-  /birds/{id}/claim:
-    parameters:
+  /bird/v1/birds/{id}/claim:
+    parameters: &pathParams22
     - $ref: '#/components/parameters/BirdId'
     post:
       operationId: claimBird
       summary: 旧领养兼容适配：已取消隐藏码和单主人限制，建议使用 adopt
       description: 同账号同实体幂等，不再校验 code。返回本人小鸟；昵称按 1～6 Unicode code points 校验。 历史绑定入口保留兼容；新小程序统一
         POST /me/pets/adopt。暂不承诺移除日期。
-      security:
+      security: &claimBirdSecurity
       - bearer: []
-      requestBody:
+      requestBody: &claimBirdRequestBody
         required: true
         content:
           application/json:
@@ -1067,7 +1067,7 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 6
-      responses:
+      responses: &claimBirdResponses
         '415':
           $ref: '#/components/responses/Error'
         '200':
@@ -1106,15 +1106,15 @@ paths:
         '429':
           $ref: '#/components/responses/Error'
       deprecated: true
-      tags:
+      tags: &claimBirdTags
       - 实体与历史领养
-  /me/birds:
+  /bird/v1/me/birds:
     get:
       operationId: myBirds
       summary: 查询当前账号绑定的小鸟和独立昵称，多账号可以各有同实体
-      security:
+      security: &myBirdsSecurity
       - bearer: []
-      responses:
+      responses: &myBirdsResponses
         '200':
           description: 仅返回当前用户所有的小鸟
           content:
@@ -1142,14 +1142,15 @@ paths:
                     type: string
                   message:
                     type: string
-      tags:
+      tags: &myBirdsTags
       - 实体与历史领养
-  /me/points:
+  /bird/v1/me/points:
     get:
+      operationId: getBirdPointsWallet
       summary: 账号共享积分余额、北京时间当日额度、下一次奖励时间
-      security:
+      security: &get24Security
       - bearer: []
-      responses:
+      responses: &get24Responses
         '200':
           description: 成功
           content:
@@ -1181,14 +1182,15 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &get24Tags
       - 叽分与装扮
-  /me/points/ledger:
+  /bird/v1/me/points/ledger:
     get:
+      operationId: listBirdPointsLedger
       summary: 积分流水，按 ID 倒序，每页最多 50 条；下一页传最后一条 id
-      security:
+      security: &get25Security
       - bearer: []
-      responses:
+      responses: &get25Responses
         '200':
           description: 成功
           content:
@@ -1222,23 +1224,24 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      parameters:
+      parameters: &get25Parameters
       - name: beforeId
         in: query
         schema:
           type: integer
           format: int64
           default: 9223372036854775807
-      tags:
+      tags: &get25Tags
       - 叽分与装扮
       description: ' 保留数组响应兼容；每页最多 50 条，使用末条 id/date 作为下一页 beforeId/beforeDate，排除边界；不足
         50 条结束，恰好 50 条可继续请求至空页。'
-  /skins:
+  /bird/v1/skins:
     get:
+      operationId: listBirdSkins
       summary: 查询启用的通用装饰皮肤和当前账号是否已解锁
-      security:
+      security: &get26Security
       - bearer: []
-      responses:
+      responses: &get26Responses
         '200':
           description: 成功
           content:
@@ -1272,16 +1275,17 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &get26Tags
       - 叽分与装扮
-  /birds/{id}/pet:
-    parameters:
+  /bird/v1/birds/{id}/pet:
+    parameters: &pathParams27
     - $ref: '#/components/parameters/BirdId'
     post:
+      operationId: petBird
       summary: 抚摸自己的小鸟：+1 分，间隔 30 秒，每账号每天最多 10 分
-      security:
+      security: &post27Security
       - bearer: []
-      responses:
+      responses: &post27Responses
         '415':
           $ref: '#/components/responses/Error'
         '200':
@@ -1315,26 +1319,27 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      requestBody:
+      requestBody: &post27RequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PointsRequest'
-      tags:
+      tags: &post27Tags
       - 叽分与装扮
-  /skins/{id}/redeem:
-    parameters:
+  /bird/v1/skins/{id}/redeem:
+    parameters: &pathParams28
     - name: id
       in: path
       required: true
       schema:
         type: string
     post:
+      operationId: redeemBirdSkin
       summary: 按服务端价格扣积分并永久解锁；重复兑换不扣分
-      security:
+      security: &post28Security
       - bearer: []
-      responses:
+      responses: &post28Responses
         '415':
           $ref: '#/components/responses/Error'
         '200':
@@ -1368,22 +1373,23 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      requestBody:
+      requestBody: &post28RequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PointsRequest'
-      tags:
+      tags: &post28Tags
       - 叽分与装扮
-  /birds/{id}/skin:
-    parameters:
+  /bird/v1/birds/{id}/skin:
+    parameters: &pathParams29
     - $ref: '#/components/parameters/BirdId'
     put:
+      operationId: setBirdSkin
       summary: 穿戴已解锁皮肤或恢复默认；不消耗积分，不改变出厂皮肤
-      security:
+      security: &put29Security
       - bearer: []
-      responses:
+      responses: &put29Responses
         '415':
           $ref: '#/components/responses/Error'
         '200':
@@ -1417,20 +1423,21 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      requestBody:
+      requestBody: &put29RequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/EquipSkin'
-      tags:
+      tags: &put29Tags
       - 叽分与装扮
-  /me/outfits:
+  /bird/v1/me/outfits:
     get:
+      operationId: listBirdOutfits
       summary: 当前账号各只小鸟的穿戴状态
-      security:
+      security: &get30Security
       - bearer: []
-      responses:
+      responses: &get30Responses
         '200':
           description: 成功
           content:
@@ -1464,13 +1471,13 @@ paths:
           $ref: '#/components/responses/Error'
         '409':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &get30Tags
       - 叽分与装扮
-  /checkin-catalog:
+  /bird/v1/checkin-catalog:
     get:
       operationId: checkinCatalog
       summary: 完整出镜款式目录；目录不表示拥有权益
-      responses:
+      responses: &checkinCatalogResponses
         '200':
           description: 已登记实物款式去重；真实归属由 /me/birds 校验
           content:
@@ -1479,9 +1486,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CheckinCharacter'
-      tags:
+      tags: &checkinCatalogTags
       - 合照
-  /checkins:
+  /bird/v1/checkins:
     post:
       security: &id002
       - bearer: []
@@ -1489,7 +1496,7 @@ paths:
       summary: 保存已合成照片，成功后同事务奖励 1 叽分
       description: 受控保存合照。新原图每天最多 3 次各 +1，原图内容跨 requestId 不重复奖励；超限/重复仍保存，reward=0。旧原图首次写入时受控补哈希，缺失文件时保守不发奖。重试返回原作品与原奖励。上传繁忙或频率过高返回
         429。
-      requestBody:
+      requestBody: &createCheckinRequestBody
         required: true
         content:
           multipart/form-data:
@@ -1513,7 +1520,7 @@ paths:
             encoding:
               metadata:
                 contentType: application/json
-      responses:
+      responses: &createCheckinResponses
         '415':
           $ref: '#/components/responses/Error'
         '200':
@@ -1569,10 +1576,10 @@ paths:
               description: 本人可读取的资源详情相对 URI
               schema:
                 type: string
-      tags:
+      tags: &createCheckinTags
       - 合照
-  /checkins/{id}:
-    parameters:
+  /bird/v1/checkins/{id}:
+    parameters: &pathParams33
     - &id008
       name: id
       in: path
@@ -1584,7 +1591,7 @@ paths:
       security: *id002
       operationId: getCheckin
       summary: 查询本人成功作品，其他用户返回 404
-      responses:
+      responses: &getCheckinResponses
         '200':
           description: 成功
           content:
@@ -1615,16 +1622,16 @@ paths:
         '409': *id005
         '413': *id006
         '503': *id007
-      tags:
+      tags: &getCheckinTags
       - 合照
-  /checkins/{id}/image:
-    parameters:
+  /bird/v1/checkins/{id}/image:
+    parameters: &pathParams34
     - *id008
     get:
       security: *id002
       operationId: checkinImage
       summary: 获取本人成品 JPEG
-      responses:
+      responses: &checkinImageResponses
         '200':
           description: 必须携带 Bearer；URL 无令牌，文件不作为静态资源公开；inline 文件名扩展名与实际 MIME 一致，JPEG
             为 .jpg、PNG 为 .png
@@ -1657,16 +1664,16 @@ paths:
         '409': *id005
         '413': *id006
         '503': *id007
-      tags:
+      tags: &checkinImageTags
       - 合照
-  /checkins/{id}/original:
-    parameters:
+  /bird/v1/checkins/{id}/original:
+    parameters: &pathParams35
     - *id008
     get:
       security: *id002
       operationId: checkinOriginal
       summary: 获取本人归一化源照片
-      responses:
+      responses: &checkinOriginalResponses
         '200':
           description: 必须携带 Bearer；URL 无令牌，文件不作为静态资源公开；inline 文件名扩展名与实际 MIME 一致，JPEG
             为 .jpg、PNG 为 .png
@@ -1703,14 +1710,14 @@ paths:
         '409': *id005
         '413': *id006
         '503': *id007
-      tags:
+      tags: &checkinOriginalTags
       - 合照
-  /me/checkins:
+  /bird/v1/me/checkins:
     get:
       security: *id002
       operationId: myCheckins
       summary: 本人相册，createdAt DESC、id DESC 稳定游标分页
-      parameters:
+      parameters: &myCheckinsParameters
       - name: cursor
         in: query
         schema:
@@ -1723,7 +1730,7 @@ paths:
           minimum: 1
           maximum: 50
           default: 20
-      responses:
+      responses: &myCheckinsResponses
         '200':
           description: 成功
           content:
@@ -1754,15 +1761,15 @@ paths:
         '409': *id005
         '413': *id006
         '503': *id007
-      tags:
+      tags: &myCheckinsTags
       - 合照
-  /auth/session:
+  /bird/v1/auth/session:
     get:
       operationId: currentSession
       summary: 验证当前会话并返回内部用户 ID、用户名与到期时间，不延长有效期
-      security:
+      security: &currentSessionSecurity
       - bearer: []
-      responses:
+      responses: &currentSessionResponses
         '200':
           description: 有效会话
           content:
@@ -1788,25 +1795,25 @@ paths:
                     type: string
                   message:
                     type: string
-      tags:
+      tags: &currentSessionTags
       - 账号与认证
-  /birds/{id}/adopt:
-    parameters:
+  /bird/v1/birds/{id}/adopt:
+    parameters: &pathParams38
     - $ref: '#/components/parameters/BirdId'
     post:
       operationId: adoptBird
       summary: 登录后多账号领养：同账号同实体一次，免费立即孵化
       description: 只接受用户确认提交；打开链接/登录不创建绑定。用户昵称与穿戴独立。首次新领养账号 +5 初见礼，迁移旧账号不补发。相同 requestId
         改实体或昵称返回 409；同实体不同 requestId 返回已有结果。 历史绑定入口保留兼容；新小程序统一 POST /me/pets/adopt。暂不承诺移除日期。
-      security:
+      security: &adoptBirdSecurity
       - bearer: []
-      requestBody:
+      requestBody: &adoptBirdRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AdoptionRequest'
-      responses:
+      responses: &adoptBirdResponses
         '415':
           $ref: '#/components/responses/Error'
         '200':
@@ -1844,18 +1851,18 @@ paths:
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/Error'
-      tags:
+      tags: &adoptBirdTags
       - 实体与历史领养
       deprecated: true
-  /me/birds/{id}/binding:
-    parameters:
+  /bird/v1/me/birds/{id}/binding:
+    parameters: &pathParams39
     - $ref: '#/components/parameters/BirdId'
     get:
       operationId: myBirdBinding
       summary: 查询当前账号与实体的绑定/孵化状态；无绑定返回 bound=false，不公开其他账号
-      security:
+      security: &myBirdBindingSecurity
       - bearer: []
-      responses:
+      responses: &myBirdBindingResponses
         '200':
           description: 本人状态
           content:
@@ -1881,17 +1888,17 @@ paths:
                     type: string
                   message:
                     type: string
-      tags:
+      tags: &myBirdBindingTags
       - 实体与历史领养
-  /shop/products:
+  /bird/v1/shop/products:
     get:
       operationId: listShopProducts
       summary: 公开商城商品列表，不展示销量
       description: 从校验后的 JSON 启动快照读取；只返回 enabled 商品。价格单位为人民币元；城市列表由全部启用商品生成，不随当前筛选改变。当前内置用户已确认的
         17 款商品清单（5 座城市，杭州 11 款），展示价格统一为 79.00 元并按配置读取；尚无真实购买链接时 purchaseUrl 为 null，不填演示购买链接。成功响应可公开缓存
         60 秒，弱 ETag 按最终分页表示生成；参数校验通过后，匹配 If-None-Match 返回无正文 304，错误响应不缓存。
-      security: []
-      parameters:
+      security: &listShopProductsSecurity []
+      parameters: &listShopProductsParameters
       - $ref: '#/components/parameters/IfNoneMatch'
       - name: city
         in: query
@@ -1922,7 +1929,7 @@ paths:
           minimum: 1
           maximum: 100
           default: 20
-      responses:
+      responses: &listShopProductsResponses
         '200':
           description: 商品分页；超出末页返回空 items，total 为当前城市筛选后的总数
           headers:
@@ -1948,17 +1955,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ShopError'
-      tags:
+      tags: &listShopProductsTags
       - 商城
-  /shop/products/{id}:
+  /bird/v1/shop/products/{id}:
     get:
       operationId: getShopProduct
       summary: 公开商品详情，每款商品提供独立完整详情长图
       description: 无须登录。不存在、停用或格式错误的商品 ID 均返回同一 404，且不缓存。不返回销量字段。前端以 detailImageUrl
         展示完整长图，加购仍以稳定商品 ID 去重，购买沿用购物车至淘宝流程。成功响应可公开缓存 60 秒；匹配弱 ETag 的 If-None-Match
         返回无正文 304。配置重载后下架商品仍返回 404，不因旧 ETag 返回 304。
-      security: []
-      parameters:
+      security: &getShopProductSecurity []
+      parameters: &getShopProductParameters
       - $ref: '#/components/parameters/IfNoneMatch'
       - name: id
         in: path
@@ -1966,7 +1973,7 @@ paths:
         schema:
           type: string
           pattern: ^[a-z0-9_-]{1,64}$
-      responses:
+      responses: &getShopProductResponses
         '200':
           description: 启用商品
           headers:
@@ -1986,18 +1993,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ShopError'
-      tags:
+      tags: &getShopProductTags
       - 商城
-  /shop/banners:
+  /bird/v1/shop/banners:
     get:
       operationId: listShopBanners
       summary: 公开商城轮播图，仅图片不跳转
       description: 按配置 sortOrder、id 升序返回启用图片；不提供跳转链接。内置首张已批准的“小黄莺的小店”主题轮播图；显式空配置可返回空
         items。成功响应可公开缓存 60 秒，匹配弱 ETag 的 If-None-Match 返回无正文 304。
-      security: []
-      parameters:
+      security: &listShopBannersSecurity []
+      parameters: &listShopBannersParameters
       - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
+      responses: &listShopBannersResponses
         '200':
           description: 启用轮播图
           headers:
@@ -2020,17 +2027,17 @@ paths:
                 items: []
         '304':
           $ref: '#/components/responses/ShopNotModified'
-      tags:
+      tags: &listShopBannersTags
       - 商城
-  /me/pets/initialize:
+  /bird/v1/me/pets/initialize:
     post:
       operationId: initializeCloudPets
       summary: 初始化本人云端养成
       description: 仅初始化本人已有可信绑定并开启云端标记；事务内账号锁，重复或并发请求不会重置状态、重复初始库存或补发初见礼。不导入本机数据。不需
         requestId；成功返回当前列表（非历史回执）。无需请求体。
-      security:
+      security: &initializeCloudPetsSecurity
       - bearer: []
-      responses:
+      responses: &initializeCloudPetsResponses
         '200':
           description: 已初始化，含重复调用
           content:
@@ -2056,17 +2063,17 @@ paths:
                     type: string
                   message:
                     type: string
-      tags:
+      tags: &initializeCloudPetsTags
       - 云端养成
-  /admin/login:
+  /admin/v1/login:
     post:
       operationId: post_admin_login
       summary: 管理账号登录
       description: 管理账号登录。GET 不产生业务写入。
-      tags:
+      tags: &post_admin_loginTags
       - 管理身份
-      security: []
-      responses:
+      security: &post_admin_loginSecurity []
+      responses: &post_admin_loginResponses
         '200':
           description: 成功
           content:
@@ -2104,21 +2111,21 @@ paths:
                 required:
                 - code
                 - message
-      requestBody:
+      requestBody: &post_admin_loginRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AdminLogin'
-  /admin/captchaImage:
+  /admin/v1/captchaImage:
     get:
       operationId: get_admin_captchaImage
       summary: 登录策略
       description: 登录策略。GET 不产生业务写入。
-      tags:
+      tags: &get_admin_captchaImageTags
       - 管理身份
-      security: []
-      responses:
+      security: &get_admin_captchaImageSecurity []
+      responses: &get_admin_captchaImageResponses
         '200':
           description: 成功
           content:
@@ -2142,16 +2149,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /admin/getInfo:
+  /admin/v1/getInfo:
     get:
       operationId: get_admin_getInfo
       summary: 当前管理身份与权限
       description: 当前管理身份与权限。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_getInfoTags
       - 管理身份
-      security:
+      security: &get_admin_getInfoSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_getInfoResponses
         '200':
           description: 成功
           content:
@@ -2166,16 +2173,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /admin/logout:
+  /admin/v1/logout:
     post:
       operationId: post_admin_logout
       summary: 退出管理会话
       description: 退出管理会话。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &post_admin_logoutTags
       - 管理身份
-      security:
+      security: &post_admin_logoutSecurity
       - adminBearer: []
-      responses:
+      responses: &post_admin_logoutResponses
         '200':
           description: 成功
           content:
@@ -2198,16 +2205,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /admin/password:
+  /admin/v1/password:
     put:
       operationId: put_admin_password
       summary: 修改密码并撤销会话
       description: 修改密码并撤销会话。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &put_admin_passwordTags
       - 管理身份
-      security:
+      security: &put_admin_passwordSecurity
       - adminBearer: []
-      responses:
+      responses: &put_admin_passwordResponses
         '200':
           description: 成功
           content:
@@ -2221,7 +2228,7 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      requestBody:
+      requestBody: &put_admin_passwordRequestBody
         required: true
         content:
           application/json:
@@ -2236,16 +2243,16 @@ paths:
               required:
               - oldPassword
               - newPassword
-  /admin/getRouters:
+  /admin/v1/getRouters:
     get:
       operationId: get_admin_getRouters
       summary: 管理菜单
       description: 管理菜单。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_getRoutersTags
       - 管理身份
-      security:
+      security: &get_admin_getRoutersSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_getRoutersResponses
         '200':
           description: 成功
           content:
@@ -2302,16 +2309,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /admin/accounts:
+  /admin/v1/accounts:
     get:
       operationId: get_admin_accounts
       summary: 管理账号列表
       description: 管理账号列表。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_accountsTags
       - 管理身份
-      security:
+      security: &get_admin_accountsSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_accountsResponses
         '200':
           description: 成功
           content:
@@ -2332,11 +2339,11 @@ paths:
       operationId: post_admin_accounts
       summary: 创建管理账号
       description: 创建管理账号。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &post_admin_accountsTags
       - 管理身份
-      security:
+      security: &post_admin_accountsSecurity
       - adminBearer: []
-      responses:
+      responses: &post_admin_accountsResponses
         '201':
           description: 成功
           content:
@@ -2373,22 +2380,22 @@ paths:
                   created: *id019
                 required:
                 - created
-      requestBody:
+      requestBody: &post_admin_accountsRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AdminAccountCreate'
-  /admin/accounts/{id}/roles:
+  /admin/v1/accounts/{id}/roles:
     put:
       operationId: put_admin_accounts__id__roles
       summary: 分配角色与停启用
       description: 分配角色与停启用。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &put_admin_accounts__id__rolesTags
       - 管理身份
-      security:
+      security: &put_admin_accounts__id__rolesSecurity
       - adminBearer: []
-      responses:
+      responses: &put_admin_accounts__id__rolesResponses
         '200':
           description: 成功
           content:
@@ -2408,27 +2415,27 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &put_admin_accounts__id__rolesParameters
       - name: id
         in: path
         required: true
         schema: *id009
-      requestBody:
+      requestBody: &put_admin_accounts__id__rolesRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AdminRoles'
-  /admin/content/draft:
+  /admin/v1/bird/content/draft:
     get:
       operationId: get_admin_content_draft
       summary: 读取内容草稿
       description: 读取内容草稿。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_content_draftTags
       - 运营内容
-      security:
+      security: &get_admin_content_draftSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_content_draftResponses
         '200':
           description: 成功
           content:
@@ -2447,11 +2454,11 @@ paths:
       operationId: put_admin_content_draft
       summary: 保存草稿
       description: 保存草稿。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &put_admin_content_draftTags
       - 运营内容
-      security:
+      security: &put_admin_content_draftSecurity
       - adminBearer: []
-      responses:
+      responses: &put_admin_content_draftResponses
         '200':
           description: 成功
           content:
@@ -2474,22 +2481,22 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      requestBody:
+      requestBody: &put_admin_content_draftRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/DraftWrite'
-  /admin/content/validate:
+  /admin/v1/bird/content/validate:
     post:
       operationId: post_admin_content_validate
       summary: 校验素材和引用完整性
       description: 校验素材和引用完整性。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &post_admin_content_validateTags
       - 运营内容
-      security:
+      security: &post_admin_content_validateSecurity
       - adminBearer: []
-      responses:
+      responses: &post_admin_content_validateResponses
         '200':
           description: 成功
           content:
@@ -2513,16 +2520,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /admin/content/publish:
+  /admin/v1/bird/content/publish:
     post:
       operationId: post_admin_content_publish
       summary: 发布保存的草稿
       description: 发布保存的草稿。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &post_admin_content_publishTags
       - 运营内容
-      security:
+      security: &post_admin_content_publishSecurity
       - adminBearer: []
-      responses:
+      responses: &post_admin_content_publishResponses
         '201':
           description: 成功
           content:
@@ -2545,22 +2552,22 @@ paths:
           content:
             application/json:
               schema: *id020
-      requestBody:
+      requestBody: &post_admin_content_publishRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PublishCommand'
-  /admin/content/rollback:
+  /admin/v1/bird/content/rollback:
     post:
       operationId: post_admin_content_rollback
       summary: 回滚内容不回滚用户权益
       description: 回滚内容不回滚用户权益。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &post_admin_content_rollbackTags
       - 运营内容
-      security:
+      security: &post_admin_content_rollbackSecurity
       - adminBearer: []
-      responses:
+      responses: &post_admin_content_rollbackResponses
         '200':
           description: 成功
           content:
@@ -2575,22 +2582,22 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      requestBody:
+      requestBody: &post_admin_content_rollbackRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RollbackCommand'
-  /admin/content/releases:
+  /admin/v1/bird/content/releases:
     get:
       operationId: get_admin_content_releases
       summary: 发布历史
       description: 发布历史。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_content_releasesTags
       - 运营内容
-      security:
+      security: &get_admin_content_releasesSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_content_releasesResponses
         '200':
           description: 成功
           content:
@@ -2607,22 +2614,22 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_admin_content_releasesParameters
       - name: before
         in: query
         schema:
           type: integer
           format: int64
-  /admin/content/releases/{id}:
+  /admin/v1/bird/content/releases/{id}:
     get:
       operationId: get_admin_content_releases__id_
       summary: 已发布版本详情
       description: 已发布版本详情。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_content_releases__id_Tags
       - 运营内容
-      security:
+      security: &get_admin_content_releases__id_Security
       - adminBearer: []
-      responses:
+      responses: &get_admin_content_releases__id_Responses
         '200':
           description: 成功
           content:
@@ -2637,21 +2644,21 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_admin_content_releases__id_Parameters
       - name: id
         in: path
         required: true
         schema: *id009
-  /admin/audit:
+  /admin/v1/audit:
     get:
       operationId: get_admin_audit
       summary: 管理操作记录
       description: 管理操作记录。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_auditTags
       - 运营内容
-      security:
+      security: &get_admin_auditSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_auditResponses
         '200':
           description: 成功
           content:
@@ -2668,22 +2675,22 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_admin_auditParameters
       - name: before
         in: query
         schema:
           type: integer
           format: int64
-  /admin/assets:
+  /admin/v1/assets:
     get:
       operationId: get_admin_assets
       summary: 素材库
       description: 素材库。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_assetsTags
       - 运营素材
-      security:
+      security: &get_admin_assetsSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_assetsResponses
         '200':
           description: 成功
           content:
@@ -2700,19 +2707,22 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_admin_assetsParameters
+      - name: kind
+        in: query
+        schema: {type: string, enum: [image, audio], default: image}
       - name: offset
         in: query
         schema: *id021
     post:
       operationId: post_admin_assets
-      summary: 上传优化后的 PNG 或 JPEG
-      description: 上传优化后的 PNG 或 JPEG。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      summary: 上传 PNG、JPEG、WebP 或动画 AAC/M4A 原声
+      description: 上传 PNG、JPEG、WebP 或动画 AAC/M4A 原声。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
+      tags: &post_admin_assetsTags
       - 运营素材
-      security:
+      security: &post_admin_assetsSecurity
       - adminBearer: []
-      responses:
+      responses: &post_admin_assetsResponses
         '201':
           description: 成功
           content:
@@ -2735,22 +2745,22 @@ paths:
           content:
             application/json:
               schema: *id022
-      requestBody:
+      requestBody: &post_admin_assetsRequestBody
         required: true
         content:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/AssetUpload'
-  /admin/assets/{id}:
+  /admin/v1/assets/{id}:
     get:
       operationId: get_admin_assets__id_
       summary: 授权读取素材
       description: 授权读取素材。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_assets__id_Tags
       - 运营素材
-      security:
+      security: &get_admin_assets__id_Security
       - adminBearer: []
-      responses:
+      responses: &get_admin_assets__id_Responses
         '200':
           description: 成功
           content:
@@ -2762,6 +2772,10 @@ paths:
               schema:
                 type: string
                 format: binary
+            image/webp:
+              schema: {type: string, format: binary}
+            audio/mp4:
+              schema: {type: string, format: binary}
         '400': *id010
         '403': *id011
         '404': *id012
@@ -2770,7 +2784,7 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_admin_assets__id_Parameters
       - name: id
         in: path
         required: true
@@ -2779,11 +2793,11 @@ paths:
       operationId: delete_admin_assets__id_
       summary: 隔离未被引用的素材
       description: 隔离未被引用的素材。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &delete_admin_assets__id_Tags
       - 运营素材
-      security:
+      security: &delete_admin_assets__id_Security
       - adminBearer: []
-      responses:
+      responses: &delete_admin_assets__id_Responses
         '204':
           description: 已隔离未引用素材，保留文件供恢复
         '400': *id010
@@ -2794,21 +2808,21 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &delete_admin_assets__id_Parameters
       - name: id
         in: path
         required: true
         schema: *id009
-  /admin/assets/{id}/references:
+  /admin/v1/assets/{id}/references:
     get:
       operationId: get_admin_assets__id__references
       summary: 查询素材引用
       description: 查询素材引用。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_assets__id__referencesTags
       - 运营素材
-      security:
+      security: &get_admin_assets__id__referencesSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_assets__id__referencesResponses
         '200':
           description: 成功
           content:
@@ -2836,21 +2850,21 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_admin_assets__id__referencesParameters
       - name: id
         in: path
         required: true
         schema: *id009
-  /admin/content/preview-tokens:
+  /admin/v1/bird/content/preview-tokens:
     post:
       operationId: post_admin_content_preview_tokens
       summary: 创建受控预览凭据
       description: 创建受控预览凭据。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &post_admin_content_preview_tokensTags
       - 运营内容
-      security:
+      security: &post_admin_content_preview_tokensSecurity
       - adminBearer: []
-      responses:
+      responses: &post_admin_content_preview_tokensResponses
         '200':
           description: 成功
           content:
@@ -2865,16 +2879,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /admin/entities:
+  /admin/v1/bird/entities:
     get:
       operationId: get_admin_entities
       summary: 现有实体关联列表
       description: 现有实体关联列表。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &get_admin_entitiesTags
       - 运营内容
-      security:
+      security: &get_admin_entitiesSecurity
       - adminBearer: []
-      responses:
+      responses: &get_admin_entitiesResponses
         '200':
           description: 成功
           content:
@@ -2891,20 +2905,20 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_admin_entitiesParameters
       - name: after
         in: query
         schema: *id009
-  /admin/entities/{birdId}/character:
+  /admin/v1/bird/entities/{birdId}/character:
     put:
       operationId: put_admin_entities__birdId__character
       summary: 关联已发布角色
       description: 关联已发布角色。管理写入校验独立权限并记录审计；版本冲突 409，幂等键重用但内容不同 409。
-      tags:
+      tags: &put_admin_entities__birdId__characterTags
       - 运营内容
-      security:
+      security: &put_admin_entities__birdId__characterSecurity
       - adminBearer: []
-      responses:
+      responses: &put_admin_entities__birdId__characterResponses
         '200':
           description: 成功
           content:
@@ -2924,12 +2938,12 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &put_admin_entities__birdId__characterParameters
       - name: birdId
         in: path
         required: true
         schema: *id009
-      requestBody:
+      requestBody: &put_admin_entities__birdId__characterRequestBody
         required: true
         content:
           application/json:
@@ -2942,15 +2956,15 @@ paths:
                   pattern: ^[A-Za-z0-9_-]{1,32}$
               required:
               - characterId
-  /content:
+  /bird/v1/content:
     get:
       operationId: get_content
       summary: 读取正式内容配置
       description: 读取正式内容配置。GET 不产生业务写入。
-      tags:
+      tags: &get_contentTags
       - 公开内容
-      security: []
-      responses:
+      security: &get_contentSecurity []
+      responses: &get_contentResponses
         '200':
           description: 成功
           content:
@@ -2965,15 +2979,15 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /content/characters/{id}:
+  /bird/v1/content/characters/{id}:
     get:
       operationId: get_content_characters__id_
       summary: 读取角色视觉配置
-      description: 读取角色视觉配置。GET 不产生业务写入。
-      tags:
+      description: 使用稳定 characterId 读取当前正式快照。按 character.defaultAppearanceId 选择造型，从 slots.normal、slots.happy、slots.angry 取得静态素材 ID，再与 assets[].id 对应，并将 assets[].url 解析到已配置的 HTTPS API 根地址。releaseId 用于缓存更新。未发布角色返回 404，草稿仅通过受控预览读取。GET 不产生业务写入。
+      tags: &get_content_characters__id_Tags
       - 公开内容
-      security: []
-      responses:
+      security: &get_content_characters__id_Security []
+      responses: &get_content_characters__id_Responses
         '200':
           description: 成功
           content:
@@ -3014,20 +3028,20 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_content_characters__id_Parameters
       - name: id
         in: path
         required: true
         schema: *id009
-  /content/assets/{id}:
+  /bird/v1/content/assets/{id}:
     get:
       operationId: get_content_assets__id_
       summary: 读取已发布不可变素材
       description: 读取已发布不可变素材。GET 不产生业务写入。
-      tags:
+      tags: &get_content_assets__id_Tags
       - 公开内容
-      security: []
-      responses:
+      security: &get_content_assets__id_Security []
+      responses: &get_content_assets__id_Responses
         '200':
           description: 成功
           content:
@@ -3039,6 +3053,10 @@ paths:
               schema:
                 type: string
                 format: binary
+            image/webp:
+              schema: {type: string, format: binary}
+            audio/mp4:
+              schema: {type: string, format: binary}
         '400': *id010
         '403': *id011
         '404': *id012
@@ -3047,21 +3065,21 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_content_assets__id_Parameters
       - name: id
         in: path
         required: true
         schema: *id009
-  /content/preview:
+  /admin/v1/bird/content/preview:
     get:
       operationId: get_content_preview
       summary: 读取获授权的草稿快照
       description: 读取获授权的草稿快照。GET 不产生业务写入。
-      tags:
+      tags: &get_content_previewTags
       - 受控预览
-      security:
+      security: &get_content_previewSecurity
       - previewToken: []
-      responses:
+      responses: &get_content_previewResponses
         '200':
           description: 成功
           content:
@@ -3076,16 +3094,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /content/preview/assets/{id}:
+  /admin/v1/bird/content/preview/assets/{id}:
     get:
       operationId: get_content_preview_assets__id_
       summary: 读取预览快照素材
       description: 读取预览快照素材。GET 不产生业务写入。
-      tags:
+      tags: &get_content_preview_assets__id_Tags
       - 受控预览
-      security:
+      security: &get_content_preview_assets__id_Security
       - previewToken: []
-      responses:
+      responses: &get_content_preview_assets__id_Responses
         '200':
           description: 成功
           content:
@@ -3097,6 +3115,10 @@ paths:
               schema:
                 type: string
                 format: binary
+            image/webp:
+              schema: {type: string, format: binary}
+            audio/mp4:
+              schema: {type: string, format: binary}
         '400': *id010
         '403': *id011
         '404': *id012
@@ -3105,21 +3127,21 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_content_preview_assets__id_Parameters
       - name: id
         in: path
         required: true
         schema: *id009
-  /me/wardrobe:
+  /bird/v1/me/wardrobe:
     get:
       operationId: get_me_wardrobe
       summary: 本人账号衣橱
       description: 本人账号衣橱。GET 不产生业务写入。
-      tags:
+      tags: &get_me_wardrobeTags
       - 云端装扮
-      security:
+      security: &get_me_wardrobeSecurity
       - bearer: []
-      responses:
+      responses: &get_me_wardrobeResponses
         '200':
           description: 成功
           content:
@@ -3134,16 +3156,16 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-  /me/wardrobe/acquisitions:
+  /bird/v1/me/wardrobe/acquisitions:
     post:
       operationId: post_me_wardrobe_acquisitions
       summary: 免费领取或叽分兑换
       description: 免费领取或叽分兑换。GET 不产生业务写入。
-      tags:
+      tags: &post_me_wardrobe_acquisitionsTags
       - 云端装扮
-      security:
+      security: &post_me_wardrobe_acquisitionsSecurity
       - bearer: []
-      responses:
+      responses: &post_me_wardrobe_acquisitionsResponses
         '200':
           description: 成功
           content:
@@ -3158,22 +3180,22 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      requestBody:
+      requestBody: &post_me_wardrobe_acquisitionsRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AcquisitionCommand'
-  /me/wardrobe/operations/{requestId}:
+  /bird/v1/me/wardrobe/operations/{requestId}:
     get:
       operationId: get_me_wardrobe_operations__requestId_
       summary: 查询装扮操作回执
       description: 查询装扮操作回执。GET 不产生业务写入。
-      tags:
+      tags: &get_me_wardrobe_operations__requestId_Tags
       - 云端装扮
-      security:
+      security: &get_me_wardrobe_operations__requestId_Security
       - bearer: []
-      responses:
+      responses: &get_me_wardrobe_operations__requestId_Responses
         '200':
           description: 成功
           content:
@@ -3188,21 +3210,21 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_me_wardrobe_operations__requestId_Parameters
       - name: requestId
         in: path
         required: true
         schema: *id009
-  /me/pets/{petId}/outfit:
+  /bird/v1/me/pets/{petId}/outfit:
     get:
       operationId: get_me_pets__petId__outfit
       summary: 读取本人宠物穿戴
       description: 读取本人宠物穿戴。GET 不产生业务写入。
-      tags:
+      tags: &get_me_pets__petId__outfitTags
       - 云端装扮
-      security:
+      security: &get_me_pets__petId__outfitSecurity
       - bearer: []
-      responses:
+      responses: &get_me_pets__petId__outfitResponses
         '200':
           description: 成功
           content:
@@ -3217,7 +3239,7 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &get_me_pets__petId__outfitParameters
       - name: petId
         in: path
         required: true
@@ -3226,11 +3248,11 @@ paths:
       operationId: put_me_pets__petId__outfit
       summary: 事务更新穿戴
       description: 事务更新穿戴。GET 不产生业务写入。
-      tags:
+      tags: &put_me_pets__petId__outfitTags
       - 云端装扮
-      security:
+      security: &put_me_pets__petId__outfitSecurity
       - bearer: []
-      responses:
+      responses: &put_me_pets__petId__outfitResponses
         '200':
           description: 成功
           content:
@@ -3245,33 +3267,33 @@ paths:
         '415': *id015
         '429': *id016
         '401': *id017
-      parameters:
+      parameters: &put_me_pets__petId__outfitParameters
       - name: petId
         in: path
         required: true
         schema: *id009
-      requestBody:
+      requestBody: &put_me_pets__petId__outfitRequestBody
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/OutfitCommand'
-  /admin/accounts/{id}:
+  /admin/v1/accounts/{id}:
     get:
       summary: 查询管理员账号
       operationId: adminAccountDetail
-      tags:
+      tags: &adminAccountDetailTags
       - 运营后台
-      security:
+      security: &adminAccountDetailSecurity
       - adminBearer: []
-      parameters:
+      parameters: &adminAccountDetailParameters
       - name: id
         in: path
         required: true
         schema:
           type: integer
           format: int64
-      responses:
+      responses: &adminAccountDetailResponses
         '200':
           description: 账号信息，不含密码
           content:
@@ -3288,6 +3310,295 @@ paths:
           description: 无账号管理权限
         '404':
           description: 账号不存在
+  /admin/v1/bird/brand-ips:
+    get:
+      operationId: listBrandIps
+      summary: 分页查询品牌 IP
+      security: &listBrandIpsSecurity
+      - adminBearer: []
+      responses: &listBrandIpsResponses
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BrandIpDetail'
+                  total:
+                    type: integer
+                  cities:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      parameters: &listBrandIpsParameters
+      - name: query
+        in: query
+        schema:
+          type: string
+      - name: city
+        in: query
+        schema:
+          type: string
+      - name: status
+        in: query
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: size
+        in: query
+        schema:
+          type: integer
+    post:
+      operationId: createBrandIp
+      summary: 新建未上架 IP 草稿
+      security: &createBrandIpSecurity
+      - adminBearer: []
+      responses: &createBrandIpResponses
+        '201':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandIpDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      requestBody: &createBrandIpRequestBody
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandIpInput'
+  /admin/v1/bird/brand-ips/{id}:
+    parameters: &pathParams76
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      operationId: getBrandIp
+      summary: 读取 IP 草稿和独立版本
+      security: &getBrandIpSecurity
+      - adminBearer: []
+      responses: &getBrandIpResponses
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandIpDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: saveBrandIp
+      summary: 仅保存指定 IP 草稿
+      security: &saveBrandIpSecurity
+      - adminBearer: []
+      responses: &saveBrandIpResponses
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandIpDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      requestBody: &saveBrandIpRequestBody
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - expectedVersion
+              - content
+              properties:
+                expectedVersion:
+                  type: string
+                content:
+                  $ref: '#/components/schemas/BrandIpInput'
+    delete:
+      operationId: deleteBrandIpDraft
+      summary: 仅删除从未发布且无业务引用的草稿
+      security: &deleteBrandIpDraftSecurity
+      - adminBearer: []
+      parameters: &deleteBrandIpDraftParameters
+      - name: expectedVersion
+        in: query
+        required: true
+        schema:
+          type: string
+      responses: &deleteBrandIpDraftResponses
+        '204':
+          description: 删除成功
+        '409':
+          $ref: '#/components/responses/Error'
+  /admin/v1/bird/brand-ips/{id}/actions:
+    parameters: &pathParams77
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    post:
+      operationId: actOnBrandIp
+      summary: 单 IP 发布、上下架或回滚；相同 requestId 返回原回执
+      description: 发布和首次上架要求正常表情已配置并上架。其余缺失或下架的表情在发布清单里使用正常图兜底，草稿不补写。
+      security: &actOnBrandIpSecurity
+      - adminBearer: []
+      responses: &actOnBrandIpResponses
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  releaseId:
+                    type: string
+                  version:
+                    type: string
+                  characterId:
+                    type: string
+                  replayed:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+      requestBody: &actOnBrandIpRequestBody
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandIpAction'
+  /admin/v1/bird/brand-ips/{id}/history:
+    parameters: &pathParams78
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      operationId: brandIpHistory
+      summary: 当前 IP 最近 50 次发布操作
+      security: &brandIpHistorySecurity
+      - adminBearer: []
+      responses: &brandIpHistoryResponses
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /admin/v1/bird/brand-ips/{id}/preview:
+    parameters: &pathParams79
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    post:
+      operationId: previewBrandIp
+      summary: 受保护的单 IP 草稿预览，15 分钟有效
+      description: 与发布相同，只要求正常表情已配置并上架，其余缺失表情用正常图预览。
+      security: &previewBrandIpSecurity
+      - adminBearer: []
+      responses: &previewBrandIpResponses
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+                  content:
+                    type: object
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /admin/v1/assets/{id}/thumbnail:
+    parameters: &pathParams80
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      operationId: brandAssetThumbnail
+      summary: 鉴权后返回最长边 160px 的 PNG 缩略图，保留原件
+      security: &brandAssetThumbnailSecurity
+      - adminBearer: []
+      responses: &brandAssetThumbnailResponses
+        '200':
+          description: 受保护缩略图
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
 components:
   headers:
     ShopCacheControl:
@@ -3353,6 +3664,159 @@ components:
                 maxLength: 72
                 description: 同时要求 UTF-8 编码最多 72 字节；密码不可找回
   schemas:
+    BrandIpExpression:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - type
+      - name
+      - assetId
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9a-f]{32}$
+        type:
+          type: string
+          enum:
+          - normal
+          - happy
+          - hungry
+          - thirsty
+          - lonely
+          - shy
+          - angry
+          - crying
+          - confused
+          - veryHappy
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        assetId:
+          type: string
+          description: 素材 ID；空字符串表示未配置草稿
+        listed:
+          type: boolean
+          description: 此表情在草稿中的上架状态，发布后生效。历史草稿省略此字段时，已配置素材按上架处理。可选表情下架后保留素材，发布槽位使用正常图兜底；正常图必须有素材且已上架。
+    BrandIpInput:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        code:
+          type: string
+          maxLength: 32
+          description: 实体角色编码，创建可省略自动生成，正式发布后不可改变
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        description:
+          type: string
+          maxLength: 500
+        city:
+          type: string
+          maxLength: 60
+          description: 归属城市，服务端去除末尾市并生成稳定内部城市代码，不是行政区划代码
+        coverAssetId:
+          type: string
+        expressions:
+          type: array
+          minItems: 10
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/BrandIpExpression'
+        animation:
+          description: 省略沿用原动画，传 null 移除。配置入口仅在 animationEditingEnabled 为真时开放。
+          oneOf:
+          - $ref: '#/components/schemas/SpriteAnimation'
+          - {type: object, nullable: true, enum: [null]}
+    BrandIpDetail:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        description:
+          type: string
+          maxLength: 500
+        city:
+          type: string
+          maxLength: 60
+          description: 归属城市，服务端去除末尾市并生成稳定内部城市代码，不是行政区划代码
+        coverAssetId:
+          type: string
+        mainAssetId:
+          type: string
+          description: First configured expression image in fixed state order, or empty.
+        expressions:
+          type: array
+          minItems: 10
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/BrandIpExpression'
+        id:
+          type: string
+        code:
+          type: string
+        cityCode:
+          type: string
+        status:
+          type: string
+          enum:
+          - new
+          - listed
+          - delisted
+        dirty:
+          type: boolean
+        configured:
+          type: integer
+        draftVersion:
+          type: string
+        stateVersion:
+          type: string
+        updatedAt:
+          type: string
+        mappedEntities:
+          type: integer
+        unmappedEntities:
+          type: integer
+        animationEditingEnabled:
+          type: boolean
+        animation:
+          description: 省略沿用原动画，传 null 移除。配置入口仅在 animationEditingEnabled 为真时开放。
+          oneOf:
+          - $ref: '#/components/schemas/SpriteAnimation'
+          - {type: object, nullable: true, enum: [null]}
+    BrandIpAction:
+      type: object
+      required:
+      - action
+      - draftVersion
+      - stateVersion
+      - requestId
+      properties:
+        action:
+          type: string
+          enum:
+          - publish
+          - list
+          - delist
+          - rollback
+        draftVersion:
+          type: string
+        stateVersion:
+          type: string
+        requestId:
+          type: string
+          minLength: 16
+          maxLength: 64
+          pattern: ^[A-Za-z0-9_-]+$
+        releaseId:
+          type: string
     WechatStepProgressRequest:
       type: object
       required: [encryptedData, iv]
@@ -3561,10 +4025,12 @@ components:
         supplyClaimed:
           type: boolean
         characterId:
+          description: 实体映射到的稳定角色 ID。旧实体未映射时为 null，历史回执可缺省。客户端此时使用本地素材。
           type: string
           pattern: ^[A-Za-z0-9_-]{1,32}$
           nullable: true
         contentVersion:
+          description: 读取宠物时所见的全局内容发布 ID，对应角色清单的 releaseId。回滚会生成新 ID，客户端按相等性判断，按角色清单实际返回的版本缓存。
           type: string
           nullable: true
     PetSpark:
@@ -4363,6 +4829,12 @@ components:
           type: string
           pattern: ^[0-9a-f]{32}$
           nullable: true
+        brand: &brandMetadata
+          type: object
+          properties:
+            cityName: {type: string}
+            cityCode: {type: string}
+            coverAssetId: {type: string}
         adoptionEnabled: *id019
       required:
       - id
@@ -4399,7 +4871,30 @@ components:
     SpriteAnimation:
       type: object
       additionalProperties: false
+      description: 横向逐行读取，格宽和格高分别为图集宽除以列数、高除以行数。旧格式按 fps 等时播放；有时间轴时按毫秒起点取帧，末帧保持至 durationMs。图集和可选原声从同一个 releaseId 的 assets 取址。
+      oneOf:
+      - required: [durationMs, frameTimesMs]
+      - not:
+          anyOf:
+          - required: [durationMs]
+          - required: [frameTimesMs]
+          - required: [audioAssetId]
       properties:
+        durationMs:
+          type: integer
+          minimum: 1
+          maximum: 120000
+        frameTimesMs:
+          type: array
+          minItems: 1
+          maxItems: 512
+          description: 项数等于 frames，首项为零，严格递增且小于 durationMs。
+          items: {type: integer, minimum: 0, maximum: 119999}
+        audioAssetId:
+          type: string
+          nullable: true
+          pattern: ^[0-9a-f]{32}$
+          description: 可选的单音轨 AAC/M4A 资源，时长与时间轴相差最多 100 ms。
         assetId: *id023
         columns:
           type: integer
@@ -4435,12 +4930,23 @@ components:
           minimum: 0
           maximum: 1000000
         available: *id019
+        expressions: &expressionMetadata
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              id: {type: string}
+              name: {type: string}
+              assetId: {type: string}
+              listed:
+                type: boolean
+                description: 保存的表情上架状态；历史草稿省略时已配置素材按上架处理。
         slots:
           $ref: '#/components/schemas/ExpressionSlots'
         animation:
-          allOf:
+          oneOf:
           - $ref: '#/components/schemas/SpriteAnimation'
-          nullable: true
+          - {type: object, nullable: true, enum: [null]}
       required:
       - id
       - characterId
@@ -4801,9 +5307,9 @@ components:
         license:
           type: string
           maxLength: 500
+          description: 图片可省略，音频必填。
       required:
       - file
-      - license
     AssetCreated:
       type: object
       additionalProperties: false
@@ -4814,6 +5320,8 @@ components:
           enum:
           - image/png
           - image/jpeg
+          - image/webp
+          - audio/mp4
         width: *id021
         height: *id021
         size: *id021
@@ -4833,7 +5341,10 @@ components:
         width: *id021
         height: *id021
         original_name: *id009
-        license_note: *id009
+        license_note:
+          type: string
+          maxLength: 500
+          description: 未填写时为空字符串。
         created_at:
           type: string
           format: date-time
@@ -5037,6 +5548,7 @@ components:
                 type: string
                 pattern: ^[0-9a-f]{32}$
                 nullable: true
+              brand: *brandMetadata
               adoptionEnabled:
                 type: boolean
             required:
@@ -5060,12 +5572,13 @@ components:
                 maximum: 1000000
               available:
                 type: boolean
+              expressions: *expressionMetadata
               slots:
                 $ref: '#/components/schemas/ExpressionSlots'
               animation:
-                allOf:
+                oneOf:
                 - $ref: '#/components/schemas/SpriteAnimation'
-                nullable: true
+                - {type: object, nullable: true, enum: [null]}
             required:
             - id
           maxItems: 5000
@@ -5178,6 +5691,8 @@ components:
           enum:
           - image/png
           - image/jpeg
+          - image/webp
+          - audio/mp4
         width:
           type: integer
         height:
@@ -5213,10 +5728,9 @@ components:
             type: string
             enum:
             - sprite-grid
+            - sprite-timeline
         supportsAudio:
           type: boolean
-          enum:
-          - false
         coordinateScale:
           type: integer
           enum:

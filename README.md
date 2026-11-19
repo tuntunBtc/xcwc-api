@@ -1,6 +1,12 @@
-# xcwc-api
+# xcwh-api
 
-xcwc 后端 Maven 工程，Java 21 / Spring Boot。源码在 src/main/java/com/yanji，接口契约为 openapi.yaml。
+xcwh 后端 Maven 工程，Java 21 / Spring Boot。源码在 src/main/java/com/yanji，接口契约为 openapi.yaml。
+
+## 当前接口入口（2026-11-20）
+
+正式小鸟使用 `https://api.xinchengip.com/bird/v1`，独立测试使用 `https://api.xinchengip.com/test/bird/v1`。共享管理为 `/admin/v1`，小鸟管理为 `/admin/v1/bird`，仅通过受保护后台入口提供。素材地址为 `https://assets.xinchengip.com/bird/v1/content/assets/{id}`。旧 `/api`、`/test/api` 和旧素材 API 均返回 404。
+
+下文保留数据迁移版本的业务说明，接口示例已更新为现行路径。唯一契约为 `openapi.yaml`；部署、测试和回退见 [完全退役记录](../docs/tasks/API旧入口完全退役-2026-11-20.md)。
 
 ## 构建
 
@@ -13,24 +19,24 @@ mvn verify
 或在本目录使用 Docker（不要求本机安装 JDK）：
 
 ```sh
-docker run --rm -v "$PWD:/app" -v yanji-maven-cache:/root/.m2 -w /app maven:3.9-eclipse-temurin-21 mvn -B verify
+docker run --rm -v "$PWD:/app" -v xcwh-maven-cache:/root/.m2 -w /app maven:3.9-eclipse-temurin-21 mvn -B verify
 ```
 
-父 Maven 工程为 xcwc-backend，按 common/service/api/admin/server 分模块；可执行部署产物为 target/xcwc.jar。xcwc-server/target 下的普通模块 JAR 不用于启动。
+父 Maven 工程为 xcwh-backend，按 common/service/api/admin/server 分模块；可执行部署产物为 target/xcwh.jar。xcwh-server/target 下的普通模块 JAR 不用于启动。
 
 ## 运行与测试
 
-运行时用 DB_URL、DB_USERNAME、DB_PASSWORD 配置 MySQL；后端默认监听 127.0.0.1:8080，应用上下文为 /，接口前缀为 /api。
+运行时用 DB_URL、DB_USERNAME、DB_PASSWORD 配置 MySQL；后端默认监听 127.0.0.1:8080，应用上下文为 /，小鸟接口前缀为 /bird/v1。管理入口使用上方独立前缀。
 
 ```sh
-java -jar target/xcwc.jar --server.servlet.context-path=/
+java -jar target/xcwh.jar --server.servlet.context-path=/
 ```
 
 测试默认使用隔离 H2。只有指定一次性测试库时才设置 TEST_DB_URL、TEST_DB_USERNAME、TEST_DB_PASSWORD；测试会清空业务数据，不能连接真实业务数据库。
 
-正式前端位于 ../xcwc-web，需求与部署说明位于 ../docs。旧星辰工程发布脚本不作为当前配套发布入口。
+正式前端位于 ../xcwh-web，需求与部署说明位于 ../docs。旧星辰工程发布脚本不作为当前配套发布入口。
 
-服务器部署路径：/www/server/xcwc/xcwc.jar；私密配置：/etc/xcwc/backend.env。目录迁移不修改服务器数据库或线上服务。
+杭州 ECS 应用在容器内运行 `/app/xcwh.jar`，通过 Docker 内网连接 `mysql:3306/xcwh`。本地与验收应用通过 SSH 隧道连接同一实例、同一业务库，保留应用数据库账号 `yanji`。启动方式见 [共享 MySQL 运行说明](../deploy/shared-mysql/README.md)。
 
 ## 打卡合照
 
@@ -38,11 +44,11 @@ java -jar target/xcwc.jar --server.servlet.context-path=/
 
 ## 城市-IP CODE-雪花ID
 
-V5 增加对外 birdCode，内部 id 及旧链接保持兼容。新增 GET /api/birds/by-code/{birdCode}；离线建档必须指定城市、角色、出厂皮肤、素材路径和批次，仅启用已确认的 HZ-HY-。操作和风险边界见 [编码实施说明](../docs/BIRD-CODES.md)。编码查询不凭前缀创建实体或发放权益。
+V5 增加对外 birdCode，内部 id 及旧链接保持兼容。新增 GET /bird/v1/birds/by-code/{birdCode}；离线建档必须指定城市、角色、出厂皮肤、素材路径和批次，仅启用已确认的 HZ-HY-。操作和风险边界见 [编码实施说明](../docs/BIRD-CODES.md)。编码查询不凭前缀创建实体或发放权益。
 
 ## 云端绑定与奖励修复（2026-11-02）
 
-V6 迁移旧 owner 为 bird_binding；同一实体可由多个账号绑定，昵称与穿戴独立。POST /api/birds/{id}/adopt 需登录，确认即免费孵化；重复提交恢复原结果。账号首次新领养 +5，历史已有绑定账号不追补。GET /api/me/birds/{id}/binding 返回本人状态，GET /api/auth/session 校验会话，固定七天到期。旧 claim 接口仅作兼容，不再验证隐藏码。
+V6 迁移旧 owner 为 bird_binding；同一实体可由多个账号绑定，昵称与穿戴独立。POST /bird/v1/birds/{id}/adopt 需登录，确认即免费孵化；重复提交恢复原结果。账号首次新领养 +5，历史已有绑定账号不追补。GET /bird/v1/me/birds/{id}/binding 返回本人状态，GET /bird/v1/auth/session 校验会话，固定七天到期。旧 claim 接口仅作兼容，不再验证隐藏码。
 
 当前 H5 主流程已由并行任务调整为免登录本机体验：本地领取和本地叽分不写入以上云端接口，不自动迁移。后端鉴权继续保留。云端每日补给、喂食/添水/清洁/改名、每日问候/照料和周奖励仍未实现；不可将本机体验当作后端能力。
 
@@ -51,7 +57,7 @@ V6 迁移旧 owner 为 bird_binding；同一实体可由多个账号绑定，昵
 
 ## 小程序云端宠物后端（2026-11-11，本地交付）
 
-新增 AppID + OpenID 身份隔离（V11）与云端宠物状态/操作回执/库存/补给流水（V12）。新小程序从 `/api/me/pets` 恢复本人宠物，通过 `/api/me/pets/adopt` 显式领养、`/api/me/pets/{petId}/actions` 提交业务操作；不上传整份本机存档。身份、绑定、昵称、普通档养成、每日账号补给、初见礼/摸摸奖励及清洁事件由服务端事务结算。
+新增 AppID + OpenID 身份隔离（V11）与云端宠物状态/操作回执/库存/补给流水（V12）。新小程序从 `/bird/v1/me/pets` 恢复本人宠物，通过 `/bird/v1/me/pets/adopt` 显式领养、`/bird/v1/me/pets/{petId}/actions` 提交业务操作；不上传整份本机存档。身份、绑定、昵称、普通档养成、每日账号补给、初见礼/摸摸奖励及清洁事件由服务端事务结算。
 
 旧微信用户缺少 AppID 时，须核实来源后配置 `WX_LEGACY_APP_ID`；默认不猜填或跨应用合并。既有绑定首次接入云端状态时只初始化一次，不追补初见礼。实现和验证以 [任务记录](../docs/tasks/后端云端存档差距审查与首批方案-V1.1030-2026-11-11.md) 为准，前端按 [接口交接](../docs/handoffs/小程序云端宠物接口交接-2026-11-11.md) 适配。此前“每日补给/养成未实现”的历史段落不代表本次源码状态。
 
@@ -60,12 +66,14 @@ V6 迁移旧 owner 为 bird_binding；同一实体可由多个账号绑定，昵
 
 ## 微信授权手机号登录（2026-11-14，本地交付）
 
-新增 `POST /api/auth/wx-phone-login`，接收独立的微信身份码 `code` 和手机号授权码 `phoneCode`，核验后复用原用户及云端资产，返回登录会话和手机号掩码。V13 追加已验证手机号表，不按号码自动合并用户。`WX_PHONE_LOGIN_ENABLED=false` 可关闭新入口的后端能力；真实调用沿用 `WX_APP_ID`、`WX_APP_SECRET`，要求 `app.wx.debug=false`。前端“我的”页已本地接入，原微信登录保留。
+新增 `POST /bird/v1/auth/wx-phone-login`，接收独立的微信身份码 `code` 和手机号授权码 `phoneCode`，核验后复用原用户及云端资产，返回登录会话和手机号掩码。V13 追加已验证手机号表，不按号码自动合并用户。`WX_PHONE_LOGIN_ENABLED=false` 可关闭新入口的后端能力；真实调用沿用 `WX_APP_ID`、`WX_APP_SECRET`，要求 `app.wx.debug=false`。前端“我的”页已本地接入，原微信登录保留。
 
 本轮 H2 / 隔离 MySQL 8.4 各 103 项通过；未执行生产迁移、部署或真实手机号换码。接口以 `openapi.yaml` 为准，完整验证及微信平台待办见 [交接记录](../docs/tasks/小程序手机号授权登录-2026-11-14.md)。
 
 ## 多 IP 运营后台（2026-11-15）
 
 后台管理前端在 admin-ui，运行 npm ci 与 npm run build:prod，产物 admin-ui/dist。后端依然 mvn verify；一个 Java 服务同时提供小程序 API 与管理 API。CONTENT_STORAGE_DIR 为受控持久素材目录，ADMIN_BOOTSTRAP_PASSWORD 只用于空管理库初始化，重启不会重置已有密码。生产密码不得写进源码、命令日志或 Git。
+
+内容图片存储默认 `CONTENT_STORAGE=local`。OSS 模式、ECS 临时凭证、旧图片校验迁移与回退约束见 [OSS 接入部署说明](deploy/oss-20261118/README.md)。是否已在生产启用以任务验收记录为准，配置和源码存在不代表已上线；打卡照片仍使用独立存储。
 
 新增 V14 管理身份、发布、素材、实体角色关联与永久装扮权益，保留 V1–V13 和已有业务数据。完整接口、模块、部署入口、权限、备份与前端待办见[交接](../docs/handoffs/多IP运营后台接口与部署交接-2026-11-15.md)。本次部署记录优先于上方历史“未部署”描述。

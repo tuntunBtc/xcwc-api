@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
 public class AnalyticsController {
     public record PageView(@NotNull @Pattern(regexp = "home|city|shop|profile|adopt|photo|wardrobe|flock") String page,
                            @NotNull @Pattern(regexp = "[a-f0-9]{32}") String sessionId) {}
@@ -33,13 +32,13 @@ public class AnalyticsController {
         this.adminToken = adminToken;
     }
 
-    @PostMapping("/analytics/page-view")
+    @PostMapping("/bird/v1/analytics/page-view")
     public ResponseEntity<Void> pageView(@Valid @RequestBody PageView body, HttpServletRequest request) {
         analytics.record(body.page(), body.sessionId(), request.getHeader("User-Agent"));
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/admin/analytics")
+    @GetMapping("/admin/v1/bird/analytics")
     public ResponseEntity<?> summary(@RequestHeader(value = "Authorization", required = false) String authorization,
                                      @RequestParam(required = false) LocalDate from,
                                      @RequestParam(required = false) LocalDate to) {

@@ -1,13 +1,13 @@
-# xcwc-api 后端指导
+# xcwh-api 后端指导
 
-这是 XCWC 后端 Git 仓库。Java 21 / Spring Boot / Maven，源码 src/main/java/com/yanji；先读取 README.md、pom.xml 和目标服务当前实现。
+这是 XCWH 后端 Git 仓库。Java 21 / Spring Boot / Maven，源码 src/main/java/com/yanji；先读取 README.md、pom.xml 和目标服务当前实现。
 
 ## 共享需求与协作
 
 > 2026-11-11：先读 [需求最新修订](../docs/V1.1030-REQUIREMENTS.md) 与 [架构入口](../docs/architecture/README.md)。换手机恢复宠物进度是已确认目标；云端具体模型与迁移尚需审查。下述导航、淘宝商城与本机缓存规则保留其历史 H5 适用范围，不自动决定小程序功能。此轮目录整理不代表云端功能已实现，也不授权替换旧 NFC 链接。
 
 - 当前主线为小鸟微信小程序及跨设备进度恢复；旧 V1.1030 H5 继续保留。小程序商城待定，订购/ERP 未启动；积分/羽力统一对外称“叽分”。
-- 开始业务任务前读取 `/Users/beluga/Code/xcwc/docs/V1.1030-REQUIREMENTS.md`，以最新修订优先；文档是目标，不代表当前实现已经具备全部能力。
+- 开始业务任务前读取 `/Users/beluga/Code/xcwh/docs/V1.1030-REQUIREMENTS.md`，以最新修订优先；文档是目标，不代表当前实现已经具备全部能力。
 - 公共底栏为小窝、城市、商城、我的；打卡从小窝右侧“合照打卡”进入，不新增认领页面或导航入口。
 - 商城购买经站内购物车跳转淘宝，不做站内下单、支付、订单管理，不因跳转淘宝自动发放鸟蛋。
 - 前后端独立 Git 管理。修改前检查 git status，保留已有未提交工作，不擅自 reset、清空或混入他人改动。

@@ -80,7 +80,7 @@ class ShopCatalogTest {
         assertThat(service.banners().items()).extracting(ShopCatalogService.Banner::id)
             .containsExactlyElementsOf(expectedBanners.stream().map(b->b.path("id").asText()).toList());
         var mvc=MockMvcBuilders.standaloneSetup(new ShopController(service)).build();
-        var result=mvc.perform(get("/api/shop/banners")).andExpect(status().isOk()).andReturn();
+        var result=mvc.perform(get("/bird/v1/shop/banners")).andExpect(status().isOk()).andReturn();
         JsonNode response=mapper.readTree(result.getResponse().getContentAsByteArray());
         assertThat(response.path("items").size()).isEqualTo(expectedBanners.size());
         response.path("items").forEach(b -> assertThat(b.size()).isEqualTo(3));
@@ -142,22 +142,22 @@ class ShopCatalogTest {
         var hidden=product("hidden","hangzhou","69.00",1);hidden.put("enabled",false);
         var service=service(List.of(product("xihu","hangzhou","69.00",0),hidden),List.of(banner("hero",0)));
         var mvc=MockMvcBuilders.standaloneSetup(new ShopController(service)).setControllerAdvice(new ApiErrors()).build();
-        mvc.perform(get("/api/shop/products")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1))
+        mvc.perform(get("/bird/v1/shop/products")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1))
             .andExpect(jsonPath("$.items[0].price").value(69)).andExpect(jsonPath("$.items[0].sales").doesNotExist())
             .andExpect(jsonPath("$.items[0].soldCount").doesNotExist()).andExpect(jsonPath("$.items[0].enabled").doesNotExist());
-        mvc.perform(get("/api/shop/products/xihu")).andExpect(status().isOk()).andExpect(jsonPath("$.detailImageUrl").value("/assets/shop/xihu-detail.webp"));
-        for(String id:List.of("hidden","unknown","UPPER"))mvc.perform(get("/api/shop/products/"+id)).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("SHOP_PRODUCT_NOT_FOUND"));
-        mvc.perform(get("/api/shop/products").param("sort","sales")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_SHOP_QUERY"));
-        mvc.perform(get("/api/shop/products").param("page","0")).andExpect(status().isBadRequest());
-        mvc.perform(get("/api/shop/products").param("pageSize","101")).andExpect(status().isBadRequest());
-        mvc.perform(get("/api/shop/products").param("page","abc")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_SHOP_QUERY"));
-        mvc.perform(get("/api/shop/banners")).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].imageUrl").value("/assets/shop/hero.webp"))
+        mvc.perform(get("/bird/v1/shop/products/xihu")).andExpect(status().isOk()).andExpect(jsonPath("$.detailImageUrl").value("/assets/shop/xihu-detail.webp"));
+        for(String id:List.of("hidden","unknown","UPPER"))mvc.perform(get("/bird/v1/shop/products/"+id)).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("SHOP_PRODUCT_NOT_FOUND"));
+        mvc.perform(get("/bird/v1/shop/products").param("sort","sales")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_SHOP_QUERY"));
+        mvc.perform(get("/bird/v1/shop/products").param("page","0")).andExpect(status().isBadRequest());
+        mvc.perform(get("/bird/v1/shop/products").param("pageSize","101")).andExpect(status().isBadRequest());
+        mvc.perform(get("/bird/v1/shop/products").param("page","abc")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_SHOP_QUERY"));
+        mvc.perform(get("/bird/v1/shop/banners")).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].imageUrl").value("/assets/shop/hero.webp"))
             .andExpect(jsonPath("$.items[0].link").doesNotExist()).andExpect(jsonPath("$.items[0].purchaseUrl").doesNotExist());
     }
     @Test void conditionalPublicReadsReturnBodyless304WithWeakAndMultipleValidators() throws Exception {
         var service=service(List.of(product("xihu","hangzhou","69.00",0)),List.of(banner("hero",0)));
         var mvc=MockMvcBuilders.standaloneSetup(new ShopController(service)).build();
-        for(String path:List.of("/api/shop/products","/api/shop/products/xihu","/api/shop/banners")) {
+        for(String path:List.of("/bird/v1/shop/products","/bird/v1/shop/products/xihu","/bird/v1/shop/banners")) {
             var first=mvc.perform(get(path)).andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control","public, max-age=60, must-revalidate")).andReturn();
             String tag=first.getResponse().getHeader("ETag");
@@ -178,32 +178,32 @@ class ShopCatalogTest {
         var a=product("a","hangzhou","69.00",0);var b=product("b","suzhou","59.00",1);
         var service=service(List.of(a,b),List.of(banner("hero",0)));
         var mvc=MockMvcBuilders.standaloneSetup(new ShopController(service)).build();
-        String tag=mvc.perform(get("/api/shop/products")).andReturn().getResponse().getHeader("ETag");
-        mvc.perform(get("/api/shop/products").param("city","").header("If-None-Match",tag)).andExpect(status().isNotModified());
+        String tag=mvc.perform(get("/bird/v1/shop/products")).andReturn().getResponse().getHeader("ETag");
+        mvc.perform(get("/bird/v1/shop/products").param("city","").header("If-None-Match",tag)).andExpect(status().isNotModified());
         for(String query:List.of("?city=hangzhou","?sort=priceAsc","?pageSize=1","?page=2")) {
-            var result=mvc.perform(get("/api/shop/products"+query).header("If-None-Match",tag))
+            var result=mvc.perform(get("/bird/v1/shop/products"+query).header("If-None-Match",tag))
                 .andExpect(status().isOk()).andReturn();
             assertThat(result.getResponse().getHeader("ETag")).isNotEqualTo(tag);
         }
-        String productTag=mvc.perform(get("/api/shop/products/a")).andReturn().getResponse().getHeader("ETag");
+        String productTag=mvc.perform(get("/bird/v1/shop/products/a")).andReturn().getResponse().getHeader("ETag");
         a.put("purchaseUrl","https://item.taobao.com/item.htm?id=123");
         var updated=MockMvcBuilders.standaloneSetup(new ShopController(service(List.of(a,b),List.of()))).build();
-        updated.perform(get("/api/shop/products/a").header("If-None-Match",productTag))
+        updated.perform(get("/bird/v1/shop/products/a").header("If-None-Match",productTag))
             .andExpect(status().isOk()).andExpect(jsonPath("$.purchaseUrl").value("https://item.taobao.com/item.htm?id=123"));
         a.put("enabled",false);
         var removed=MockMvcBuilders.standaloneSetup(new ShopController(service(List.of(a,b),List.of()))).build();
-        removed.perform(get("/api/shop/products/a").header("If-None-Match",productTag))
+        removed.perform(get("/bird/v1/shop/products/a").header("If-None-Match",productTag))
             .andExpect(status().isNotFound()).andExpect(header().string("Cache-Control","no-store"))
             .andExpect(header().doesNotExist("ETag"));
     }
     @Test void invalidQueriesAndMissingProductsCannotBeHiddenByMatchingWildcard() throws Exception {
         var mvc=MockMvcBuilders.standaloneSetup(new ShopController(service(List.of(),List.of()))).build();
         for(String query:List.of("?page=0","?page=abc","?pageSize=101","?sort=sales","?city=UPPER")) {
-            mvc.perform(get("/api/shop/products"+query).header("If-None-Match","*"))
+            mvc.perform(get("/bird/v1/shop/products"+query).header("If-None-Match","*"))
                 .andExpect(status().isBadRequest()).andExpect(header().string("Cache-Control","no-store"))
                 .andExpect(header().doesNotExist("ETag"));
         }
-        mvc.perform(get("/api/shop/products/missing").header("If-None-Match","*"))
+        mvc.perform(get("/bird/v1/shop/products/missing").header("If-None-Match","*"))
             .andExpect(status().isNotFound()).andExpect(header().string("Cache-Control","no-store"))
             .andExpect(header().doesNotExist("ETag"));
     }
@@ -228,7 +228,7 @@ class ShopCatalogTest {
         assertThatThrownBy(()->service(List.of(missing),List.of())).isInstanceOf(IllegalStateException.class);
     }
     @Test void rejectsUntrustedImageAndPurchaseUrls() throws Exception {
-        for(String path:List.of("https://evil.test/photo.jpg", "//evil.test/photo.jpg", "/assets/../private.jpg", "/assets//photo.jpg", "/assets/x.svg", "/api/checkins/private.jpg")) {
+        for(String path:List.of("https://evil.test/photo.jpg", "//evil.test/photo.jpg", "/assets/../private.jpg", "/assets//photo.jpg", "/assets/x.svg", "/bird/v1/checkins/private.jpg")) {
             var item=product("a","hangzhou","69.00",0);item.put("detailImageUrl",path);
             assertThatThrownBy(()->service(List.of(item),List.of())).isInstanceOf(IllegalStateException.class);
         }
@@ -288,7 +288,7 @@ class ShopCatalogTest {
             assertThatThrownBy(()->service(List.of(invalid),List.of())).isInstanceOf(IllegalStateException.class);
         }
         var mvc=MockMvcBuilders.standaloneSetup(new ShopController(service(List.of(item),List.of()))).build();
-        var result=mvc.perform(get("/api/shop/products/a")).andExpect(status().isOk()).andReturn();
+        var result=mvc.perform(get("/bird/v1/shop/products/a")).andExpect(status().isOk()).andReturn();
         assertThat(mapper.readTree(result.getResponse().getContentAsByteArray()).get("purchaseUrl").isNull()).isTrue();
     }
     @Test void rejectsUnknownSalesFieldsSchemaVersionAndMalformedJson() throws Exception {

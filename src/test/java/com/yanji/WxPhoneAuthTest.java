@@ -50,7 +50,7 @@ class WxPhoneAuthTest {
     }
 
     org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder login(String body) {
-        return post("/api/auth/wx-phone-login").header("X-Real-IP", "192.0.2." + IP.incrementAndGet())
+        return post("/bird/v1/auth/wx-phone-login").header("X-Real-IP", "192.0.2." + IP.incrementAndGet())
             .contentType("application/json").content(body);
     }
     String body() { return "{\"code\":\"login-code\",\"phoneCode\":\"phone-code\"}"; }
@@ -71,9 +71,9 @@ class WxPhoneAuthTest {
         assertThat(registration.userId("Bearer " + result.path("token").asText())).isEqualTo(id);
         assertThat(registration.userId("Bearer " + before.token())).isEqualTo(id);
         assertThat(jdbc.queryForObject("SELECT phone_e164 FROM user_verified_phone WHERE user_id=?", String.class, id)).isEqualTo("+86" + NUMBER);
-        mvc.perform(get("/api/me/pets").header("Authorization", "Bearer " + result.path("token").asText()))
+        mvc.perform(get("/bird/v1/me/pets").header("Authorization", "Bearer " + result.path("token").asText()))
             .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(id));
-        mvc.perform(get("/api/me/pets/" + petId).header("Authorization", "Bearer " + result.path("token").asText()))
+        mvc.perform(get("/bird/v1/me/pets/" + petId).header("Authorization", "Bearer " + result.path("token").asText()))
             .andExpect(status().isOk()).andExpect(jsonPath("$.pet.nickname").value("小啾"))
             .andExpect(jsonPath("$.pet.inventory.food").value(2)).andExpect(jsonPath("$.pet.care.satiety").value(90));
         assertThat(points.wallet("Bearer " + result.path("token").asText())).isEqualTo(wallet);

@@ -11,7 +11,7 @@ spring:
       max-file-size: 15MB
       max-request-size: 25MB
   datasource:
-    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/yanji?connectionTimeZone=UTC}
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:13306/xcwh?connectionTimeZone=UTC}
     username: ${DB_USERNAME:yanji}
     password: ${DB_PASSWORD}
     hikari:
@@ -45,6 +45,24 @@ mybatis:
   type-aliases-package: com.ruoyi.common.core.domain.entity,com.ruoyi.system.domain
   mapper-locations: classpath*:mapper/system/*Mapper.xml
 management-content:
+  animation-editing: ${CONTENT_ANIMATION_EDITING:false}
+  migrate-local-to-oss: ${CONTENT_OSS_MIGRATE:false}
+  storage: ${CONTENT_STORAGE:local}
+  oss:
+    credentials: ${CONTENT_OSS_CREDENTIALS:ecs}
+    bucket: ${CONTENT_OSS_BUCKET:}
+    region: ${CONTENT_OSS_REGION:cn-hangzhou}
+    endpoint: ${CONTENT_OSS_ENDPOINT:https://oss-cn-hangzhou-internal.aliyuncs.com}
+    role-name: ${CONTENT_OSS_ROLE_NAME:}
+    prefix: ${CONTENT_OSS_PREFIX:content/}
   directory: ${CONTENT_STORAGE_DIR:./data/content}
 admin:
   bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "local | acceptance"
+  flyway:
+    enabled: false

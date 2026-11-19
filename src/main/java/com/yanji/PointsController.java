@@ -7,7 +7,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/bird/v1")
 public class PointsController {
     private final PointsService points;
     public PointsController(PointsService points) { this.points = points; }

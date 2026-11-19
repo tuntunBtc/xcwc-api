@@ -6,6 +6,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 class AdminMigrationTest {
+    @Test void v14ToBrandIpKeepsExistingContentAndRoleGrants(){
+        var ds=new DriverManagerDataSource(System.getenv().getOrDefault("TEST_BRAND_MIGRATION_DB_URL","jdbc:h2:mem:brand_migration_"+UUID.randomUUID()+";MODE=MySQL;DB_CLOSE_DELAY=-1"),System.getenv().getOrDefault("TEST_BRAND_MIGRATION_DB_USERNAME","sa"),System.getenv().getOrDefault("TEST_BRAND_MIGRATION_DB_PASSWORD",""));
+        Flyway.configure().dataSource(ds).target("14").load().migrate();var db=new JdbcTemplate(ds);
+        String payload=db.queryForObject("SELECT draft FROM content_workspace WHERE id=1",String.class);
+        db.update("INSERT INTO content_release(id,workspace_version,payload,actor_id,created_at) VALUES(?,7,?,1,CURRENT_TIMESTAMP)","a".repeat(32),payload);
+        db.update("UPDATE content_workspace SET version=8,published_id=? WHERE id=1","a".repeat(32));
+        var beforeWorkspace=db.queryForList("SELECT * FROM content_workspace");var beforeReleases=db.queryForList("SELECT * FROM content_release");var grants=db.queryForList("SELECT * FROM sys_role_menu");
+        Flyway.configure().dataSource(ds).load().migrate();
+        assertThat(db.queryForList("SELECT * FROM content_workspace")).isEqualTo(beforeWorkspace);
+        assertThat(db.queryForList("SELECT * FROM content_release")).isEqualTo(beforeReleases);
+        assertThat(db.queryForList("SELECT * FROM sys_role_menu")).containsAll(grants);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM brand_ip_revision",Integer.class)).isZero();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM sys_menu WHERE perms LIKE 'brand:%'",Integer.class)).isEqualTo(7);
+    }
     @Test void v12ToAdminPreservesExistingPetProgressInventoryAndUserWallet(){
         var ds=new DriverManagerDataSource(System.getenv().getOrDefault("TEST_ADMIN_MIGRATION_DB_URL","jdbc:h2:mem:admin_migration_"+UUID.randomUUID()+";MODE=MySQL;DB_CLOSE_DELAY=-1"),System.getenv().getOrDefault("TEST_ADMIN_MIGRATION_DB_USERNAME","sa"),System.getenv().getOrDefault("TEST_ADMIN_MIGRATION_DB_PASSWORD",""));
         Flyway.configure().dataSource(ds).target("12").load().migrate();var db=new JdbcTemplate(ds);
