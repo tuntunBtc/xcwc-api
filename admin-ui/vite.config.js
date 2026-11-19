@@ -46,12 +46,8 @@ export default defineConfig(({ mode, command }) => {
       host: '127.0.0.1',
       open: false,
       proxy: {
+        '/admin/v1': { target: baseUrl, changeOrigin: true },
         // https://cn.vitejs.dev/config/#server-proxy
-        '/api': {
-          target: baseUrl,
-          changeOrigin: true,
-          
-        },
          // springdoc proxy
          '^/v3/api-docs/(.*)': {
           target: baseUrl,
