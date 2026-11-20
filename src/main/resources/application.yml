@@ -8,8 +8,9 @@ server:
 spring:
   servlet:
     multipart:
-      max-file-size: 15MB
-      max-request-size: 25MB
+      max-file-size: 50MB
+      max-request-size: 52MB
+      location: ${MULTIPART_TMP_DIR:${java.io.tmpdir}}
   datasource:
     url: ${DB_URL:jdbc:mysql://127.0.0.1:13306/xcwh?connectionTimeZone=UTC}
     username: ${DB_USERNAME:yanji}
@@ -44,6 +45,12 @@ app:
 mybatis:
   type-aliases-package: com.ruoyi.common.core.domain.entity,com.ruoyi.system.domain
   mapper-locations: classpath*:mapper/system/*Mapper.xml
+management-upload:
+  video-enabled: ${OSS_UPLOAD_VIDEO_ENABLED:false}
+  ffprobe-command: ${OSS_UPLOAD_FFPROBE_COMMAND:ffprobe}
+  directory: ${OSS_UPLOAD_TMP_DIR:${java.io.tmpdir}}
+  enabled: ${OSS_UPLOAD_ENABLED:false}
+  public-base-url: ${OSS_UPLOAD_PUBLIC_BASE_URL:}
 management-content:
   animation-editing: ${CONTENT_ANIMATION_EDITING:false}
   migrate-local-to-oss: ${CONTENT_OSS_MIGRATE:false}

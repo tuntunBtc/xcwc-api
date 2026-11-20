@@ -45,7 +45,7 @@ class ApiNamespacesTest {
         paths.forEach((path, spec) -> {
             var item = (Map<?, ?>)spec;
             assertThat(item.containsKey("x-legacy-path") || item.containsKey("x-canonical-path")).isFalse();
-            for (String verb : new String[]{"get","post","put","delete","patch"}) {
+            for (String verb : new String[]{"get","post","put","delete","patch","head"}) {
                 if (!item.containsKey(verb)) continue;
                 String key = verb + " " + path;
                 assertThat(registered.get(key)).as(key).isNotNull();

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: XCWH 小程序与运营后台 API
-  version: 1.0.0
+  version: 1.1.0
   description: XCWH H5：账号密码会话、多账号实体领养和免费立即孵化、叽分与受控合照。保持旧内部 ID；隐藏码不再参与领养。请求 Content-Type
     不受支持时返回 415 和 UNSUPPORTED_MEDIA_TYPE，不视为服务端故障。 小程序云端宠物 GET 为业务只读；未初始化返回 CLOUD_INITIALIZATION_REQUIRED，显式
     POST /me/pets/initialize 后重读。 2026-11-14 增加独立管理鉴权、内容发布、素材与账号永久装扮权益；与商品展示无自动关联。
@@ -3599,6 +3599,162 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
 
+  /admin/v1/oss/uploads:
+    post:
+      operationId: uploadPublicOperationalImage
+      summary: 上传公开运营图片或 MP4 视频到 OSS
+      description: 管理员需 content:edit 权限。PNG/JPEG/WebP 图片与 MP4 视频单文件最多 50 MiB（52,428,800 字节），multipart 请求最多 52 MiB。图片仍校验实际格式、完整解码、8192×8192 边长及 2400 万像素。视频需启用 OSS_UPLOAD_VIDEO_ENABLED=true，仅接受 H.264/8-bit yuv420p 或 HEVC/H.265 的 8-bit yuv420p、10-bit yuv420p10le、可选单条 AAC 双声道音轨的 MP4，最长 180 秒、最长边 1920/短边 1080、最高 60 fps；不接收 MOV/WebM、12-bit 或 4:2:2/4:4:4 视频，不自动转码；HEVC 原字节公开读取不等于已验证所有客户端播放兼容。使用受限本地 ffprobe 先检查元数据，再解码开头最多 1 秒，不声称完整解码全片。文件名与客户端 MIME 不作为格式依据。保留原字节，通过私有临时文件流式上传、OSS 读回和匿名 HTTPS 全文件 SHA256/MIME/字节数校验后才返回 201。仅一个上传可进入 multipart 处理，忙时 429。新上传素材全部公开，URL 无签名和过期参数，不公开历史私有原件、草稿或用户照片。失败不返回成功 URL；重试创建独立资源，不覆盖。公开地址为 Java 代理私有 OSS，不代表 OSS 直出或 CDN。
+      tags: [运营素材]
+      security:
+      - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PNG/JPEG/WebP 图片或启用后支持的 MP4 视频，最多 50 MiB；文件名和客户端声明的 MIME 不作为格式校验依据。
+      responses:
+        '201':
+          description: 已验证匿名 HTTPS 下载可用，元数据及成功审计已提交
+          headers:
+            Location:
+              schema: {type: string, format: uri}
+              description: 与响应 url 相同的完整公开 HTTPS URL，无过期参数。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicOperationalUpload'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+        '429':
+          description: 当前上传处理忙，返回 OSS_UPLOAD_BUSY，稍后重试
+          headers:
+            Retry-After:
+              schema: {type: string, example: '1'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Error/content/application~1json/schema'
+        '503':
+          description: OSS 未配置、写入/读回失败、临时磁盘不可用或匿名 HTTPS 校验失败。探针缺失为 PUBLIC_VIDEO_VALIDATOR_UNAVAILABLE；失败响应不包含成功 URL。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Error/content/application~1json/schema'
+  /bird/v1/oss/uploads/{filename}:
+    get:
+      operationId: readPublicOperationalImage
+      summary: 匿名读取新上传的公开运营图片或视频
+      description: 从私有 OSS 下载到私有临时文件并流式校验全文件 SHA256/大小，再输出响应；只读取已登记资源。成功资源长期不可变缓存，验证中的读取为 no-store，失败或验证过期为 404。支持 HEAD、If-None-Match、单段 bytes Range 和强 ETag If-Range；部分读取 206，无效或多段范围 416。最多两个普通下载和一个独立自验证下载，繁忙为 503 + Retry-After。响应结束、断连或错误均清理临时文件并归还名额。URL 持续可用依赖保留对象、元数据、域名及此服务。
+      tags: [运营素材]
+      security: []
+      parameters:
+      - name: filename
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[0-9a-f]{32}\.(png|jpg|webp|mp4)$'
+      - name: Range
+        in: header
+        schema: {type: string, example: 'bytes=0-1023'}
+        description: 可选单段字节范围，支持起点到末尾及后缀范围。
+      - name: If-Range
+        in: header
+        schema: {type: string}
+        description: 仅强 ETag 匹配时返回范围，否则返回完整 200。
+      - name: If-None-Match
+        in: header
+        schema: {type: string}
+        description: READY 资源 ETag 匹配时返回 304。
+      responses:
+        '200':
+          description: 图片或视频完整字节，MIME 取已校验的上传元数据
+          headers:
+            Accept-Ranges:
+              schema: {type: string, example: bytes}
+            Content-Length:
+              schema: {type: integer, format: int64}
+            Cache-Control:
+              schema: {type: string}
+              description: 已完成资源为 public, max-age=31536000, immutable；上传验证期间为 no-store。
+            ETag:
+              schema: {type: string}
+              description: 带引号的 SHA-256。
+          content:
+            image/png:
+              schema: {type: string, format: binary}
+            image/jpeg:
+              schema: {type: string, format: binary}
+            image/webp:
+              schema: {type: string, format: binary}
+            video/mp4:
+              schema: {type: string, format: binary}
+        '206':
+          description: 单段范围字节，包含 Content-Range、Content-Length、Accept-Ranges 和完整文件 ETag。
+          headers:
+            Content-Range:
+              schema: {type: string, example: 'bytes 0-1023/14680064'}
+          content:
+            image/png:
+              schema: {type: string, format: binary}
+            image/jpeg:
+              schema: {type: string, format: binary}
+            image/webp:
+              schema: {type: string, format: binary}
+            video/mp4:
+              schema: {type: string, format: binary}
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        '304':
+          description: READY 资源 ETag 未变化，无响应体。
+        '416':
+          description: 范围无效或多段范围，无响应体且不缓存。
+          headers:
+            Content-Range:
+              schema: {type: string, example: 'bytes */14680064'}
+        '404':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+    head:
+      operationId: headPublicOperationalUpload
+      summary: 匿名读取公开运营图片或视频的响应头
+      tags: [运营素材]
+      security: []
+      description: 与 GET 相同的资源校验和范围语义，不返回响应体。可传 Range、If-Range 和 If-None-Match。
+      parameters:
+      - name: filename
+        in: path
+        required: true
+        schema: {type: string, pattern: '^[0-9a-f]{32}\.(png|jpg|webp|mp4)$'}
+      responses:
+        '200':
+          description: 返回实际 MIME、Content-Length、Accept-Ranges、ETag 和缓存头，无响应体。
+        '206':
+          description: 返回有效范围的 Content-Range/Content-Length，无响应体。
+        '304':
+          description: 未变化，无响应体。
+        '416':
+          description: 范围无效，无响应体。
+        '404':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
 components:
   headers:
     ShopCacheControl:
@@ -3664,6 +3820,39 @@ components:
                 maxLength: 72
                 description: 同时要求 UTF-8 编码最多 72 字节；密码不可找回
   schemas:
+    PublicOperationalUpload:
+      type: object
+      additionalProperties: false
+      required: [id, url, mime, width, height, size, sha256]
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        url:
+          type: string
+          format: uri
+          example: https://assets.xinchengip.com/bird/v1/oss/uploads/0123456789abcdef0123456789abcdef.png
+          description: 已完成匿名读取验证的完整 HTTPS URL，无签名和过期参数。
+        mime:
+          type: string
+          enum: [image/png, image/jpeg, image/webp, video/mp4]
+        width:
+          type: integer
+          minimum: 1
+          maximum: 8192
+        height:
+          type: integer
+          minimum: 1
+          maximum: 8192
+        size:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 52428800
+          description: 上传图片或视频原始字节数，单文件最多 50 MiB。
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
     BrandIpExpression:
       type: object
       additionalProperties: false

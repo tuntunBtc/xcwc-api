@@ -11,8 +11,18 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 @RestControllerAdvice
 public class ApiErrors {
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
-    ResponseEntity<?> oversized(Exception error) {
+    ResponseEntity<?> oversized(Exception error, jakarta.servlet.http.HttpServletRequest request) {
+        if (request.getRequestURI().equals(request.getContextPath() + "/admin/v1/oss/uploads")) {
+            return ResponseEntity.status(413).body(Map.of("code","PUBLIC_UPLOAD_SIZE_INVALID","message","上传文件超过 50 MiB 限制"));
+        }
         return ResponseEntity.status(413).body(Map.of("code","IMAGE_TOO_LARGE","message","照片超出上传大小限制"));
+    }
+    @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+    ResponseEntity<?> malformedUpload(Exception error, jakarta.servlet.http.HttpServletRequest request) {
+        if (request.getRequestURI().equals(request.getContextPath() + "/admin/v1/oss/uploads")) {
+            return ResponseEntity.badRequest().body(Map.of("code","PUBLIC_UPLOAD_INVALID_MULTIPART","message","上传表单格式不正确"));
+        }
+        return unexpected(error);
     }
     @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
     ResponseEntity<?> missingPart(Exception error) {
@@ -23,6 +33,7 @@ public class ApiErrors {
         var response=ResponseEntity.status(error.status);
         if(error.status.value()==401)
             response.header("WWW-Authenticate", "Bearer realm=\""+("ADMIN_LOGIN_REQUIRED".equals(error.code)?"xcwc-admin":"xcwc")+"\"");
+        if ("OSS_UPLOAD_BUSY".equals(error.code)||"OSS_PUBLIC_READ_BUSY".equals(error.code)) response.header("Retry-After", "1");
         return response.body(Map.of("code", error.code, "message", error.getMessage()));
     }
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
