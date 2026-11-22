@@ -32,6 +32,10 @@
       <el-form-item label="所属城市"><el-select v-model="form.city" filterable allow-create default-first-option clearable placeholder="选择或输入归属城市" style="width:100%"><el-option v-for="city in cities" :key="city" :label="city" :value="city"/></el-select><small>统一保存城市名称；不改变实体编码和旅行目的地。</small></el-form-item>
       <el-form-item label="实体关联编码（发布后固定）"><el-input v-model="form.code" :readonly="!!form.id&&form.status!=='new'" maxlength="32" placeholder="可留空自动生成；已有实体须填写对应 IP 编码"/><small>这是角色业务编码，区别于上方 IP ID 和每个实体的完整 NFC 编码。</small></el-form-item>
       <el-form-item label="简介（选填）"><el-input v-model="form.description" type="textarea" maxlength="500" show-word-limit/></el-form-item>
+      <el-form-item label="小窝背景图">
+        <BrandAssetPicker v-model="form.backgroundAssetId" background :disabled="saving"/>
+        <small>保存草稿后发布更新，才会在该 IP 的小窝显示。</small>
+      </el-form-item>
     </el-form>
     <el-alert v-if="formError" :title="formError" type="error" :closable="false"/>
     <template #footer><el-button @click="closeEdit(()=>editOpen=false)" :disabled="saving">取消</el-button><el-button type="primary" :loading="saving" @click="save">保存草稿</el-button></template>
@@ -69,6 +73,7 @@ import {api} from '@/api/operations'
 import {brandDetail,brandPayload,brandAction,canBrand,pendingBrandAction,retryBrandAction} from '@/api/brand-ip'
 import BrandImage from './components/BrandImage.vue'
 import BrandPreview from './components/BrandPreview.vue'
+import BrandAssetPicker from './components/BrandAssetPicker.vue'
 const route=useRoute(),router=useRouter(),items=ref([]),cities=ref([]),total=ref(0),loading=ref(false),busy=ref(false),error=ref(''),pending=ref(pendingBrandAction())
 const filters=reactive({query:String(route.query.query||''),city:String(route.query.city||''),status:String(route.query.status||''),page:Math.max(1,Number(route.query.page)||1)})
 const statusLabel={new:'未上架',listed:'已上架',delisted:'已下架'},actionLabel={list:'上架',delist:'下架',publish:'发布更新',rollback:'回滚'}
@@ -78,7 +83,7 @@ async function load(){loading.value=true;error.value='';try{const r=await api('/
 async function searchPage(){await router.replace({query:{...filters,page:String(filters.page)}});await load()}
 function search(){filters.page=1;searchPage()}function reset(){Object.assign(filters,{query:'',city:'',status:'',page:1});searchPage()}
 async function copy(value,label='IP ID'){try{await navigator.clipboard.writeText(value);ElMessage.success('已复制完整 '+label)}catch{ElMessage.warning('复制失败，请从提示中选择完整 ID')}}
-async function edit(row){formError.value='';try{form.value=row?await brandDetail(row.id):{name:'',description:'',city:'',coverAssetId:''};formOriginal=JSON.stringify(form.value);editOpen.value=true}catch(e){error.value=e.message}}
+async function edit(row){formError.value='';try{form.value=row?await brandDetail(row.id):{name:'',description:'',city:'',coverAssetId:'',backgroundAssetId:''};formOriginal=JSON.stringify(form.value);editOpen.value=true}catch(e){error.value=e.message}}
 async function closeEdit(done){if(saving.value)return;if(JSON.stringify(form.value)!==formOriginal){try{await ElMessageBox.confirm('修改尚未保存，确定关闭？','未保存修改',{type:'warning',confirmButtonText:'放弃修改',cancelButtonText:'继续编辑'})}catch{return}}done()}
 async function save(){if(!form.value.name?.trim()){formError.value='请填写 IP 名称。';return}saving.value=true;formError.value='';try{const item=form.value,payload=brandPayload(item);await api('/brand-ips'+(item.id?'/'+item.id:''),{method:item.id?'PUT':'POST',body:item.id?{expectedVersion:item.draftVersion,content:payload}:payload});editOpen.value=false;ElMessage.success('草稿已保存，正式内容尚未改变');await load()}catch(e){formError.value=e.message}finally{saving.value=false}}
 function expressions(row){sessionStorage.setItem('brand-ip-list-scroll',String(window.scrollY));router.push({name:'BrandExpressions',params:{id:row.id},query:{...filters,page:String(filters.page)}})}

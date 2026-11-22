@@ -35,4 +35,4 @@ CONTENT_OSS_MIGRATE=false
 
 ## 后续 CDN
 
-素材 ID 与现有 `/api/content/assets/{id}` 公开接口保持稳定。私有原件和草稿不配置公共缓存；后续应单独配置已发布资源的 CDN 域名、私有回源及访问策略。此轮不提前购买或开通 CDN，也不让私有 Bucket 匿名可读。打卡照片存储不在此轮范围。
+迁移前后使用同一发布清单和素材 ID，从 `https://assets.xinchengip.com/bird/v1/content/assets/{id}` 下载并核对清单中的字节数及 SHA-256。确认新上传素材及其缩略图可读，再解除暂停写入。私有原件、草稿和打卡照片继续使用现有访问控制。若以后启用 CDN，只将已发布资源纳入公开缓存。

@@ -2983,7 +2983,7 @@ paths:
     get:
       operationId: get_content_characters__id_
       summary: 读取角色视觉配置
-      description: 使用稳定 characterId 读取当前正式快照。按 character.defaultAppearanceId 选择造型，从 slots.normal、slots.happy、slots.angry 取得静态素材 ID，再与 assets[].id 对应，并将 assets[].url 解析到已配置的 HTTPS API 根地址。releaseId 用于缓存更新。未发布角色返回 404，草稿仅通过受控预览读取。GET 不产生业务写入。
+      description: 使用稳定 characterId 读取当前正式快照。按 character.defaultAppearanceId 选择造型，从 slots.normal、slots.happy、slots.angry 取得静态素材 ID。小窝背景优先使用 character.backgroundAssetId，其次使用 pages 中 nestDefault 的 backgroundAssetId。素材 ID 与 assets[].id 对应，assets[].url 使用已配置的 HTTPS 素材域名。releaseId 用于缓存更新。未发布角色返回 404，草稿仅通过受控预览读取。GET 不产生业务写入。
       tags: &get_content_characters__id_Tags
       - 公开内容
       security: &get_content_characters__id_Security []
@@ -3911,6 +3911,11 @@ components:
           description: 归属城市，服务端去除末尾市并生成稳定内部城市代码，不是行政区划代码
         coverAssetId:
           type: string
+        backgroundAssetId:
+          type: string
+          nullable: true
+          pattern: '^[0-9a-f]{32}$'
+          description: 小窝背景图片的内容素材 ID。省略保留原配置，传 null 清除并回退至公共背景。保存草稿后需发布才生效。
         expressions:
           type: array
           minItems: 10
@@ -3938,6 +3943,11 @@ components:
           description: 归属城市，服务端去除末尾市并生成稳定内部城市代码，不是行政区划代码
         coverAssetId:
           type: string
+        backgroundAssetId:
+          type: string
+          nullable: true
+          pattern: '^[0-9a-f]{32}$'
+          description: 当前品牌 IP 草稿中配置的小窝背景，null 表示使用公共背景。
         mainAssetId:
           type: string
           description: First configured expression image in fixed state order, or empty.

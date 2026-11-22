@@ -2,11 +2,11 @@
   <div class="picker">
     <BrandImage v-if="!isAudio" :asset-id="modelValue"/>
     <div class="picker-controls">
-      <el-select :model-value="modelValue||undefined" filterable clearable :placeholder="placeholder"
+      <el-select :model-value="modelValue||undefined" filterable clearable :placeholder="placeholder" :disabled="disabled"
         @update:model-value="value=>emit('update:modelValue',value||'')">
         <el-option v-for="asset in assets" :key="asset.id" :value="asset.id" :label="assetLabel(asset)"/>
       </el-select>
-      <el-button v-if="more" size="small" :loading="loading" @click="loadMore">加载更多素材</el-button>
+      <el-button v-if="more" size="small" :loading="loading" :disabled="disabled" @click="loadMore">加载更多素材</el-button>
       <el-button :disabled="disabled" @click="openUpload">{{isAudio?'上传原声':'上传图片'}}</el-button>
     </div>
   </div>
@@ -38,17 +38,19 @@ const props=defineProps({
   modelValue:String,
   disabled:Boolean,
   kind:{type:String,default:'image'},
-  sprite:Boolean
+  sprite:Boolean,
+  background:Boolean
 })
 const emit=defineEmits(['update:modelValue'])
 const assets=ref([]), more=ref(true), loading=ref(false)
 const uploadOpen=ref(false), uploading=ref(false), license=ref(''), error=ref('')
 const isAudio=computed(()=>props.kind==='audio')
-const placeholder=computed(()=>isAudio.value?'不使用原声':props.sprite?'从素材库选择图集':'从素材库选择')
+const placeholder=computed(()=>isAudio.value?'不使用原声':props.background?'使用公共默认背景':props.sprite?'从素材库选择图集':'从素材库选择')
 const accept=computed(()=>isAudio.value?'.m4a,audio/mp4':'image/png,image/jpeg,image/webp')
 const uploadHint=computed(()=>{
   if(isAudio.value)return '支持单音轨 AAC/M4A，最大 10 MB。原声时长需与动画时长匹配。'
   if(props.sprite)return '支持 PNG、JPEG 和 WebP，最大 10 MB。图集按横向从左到右逐行读取。'
+  if(props.background)return '支持 PNG、JPEG 和 WebP，最大 10 MB。建议使用竖版图片，小窝会等比铺满屏幕。'
   return '支持 PNG、JPEG 和 WebP，最大 10 MB。表情可使用透明 WebP 或 PNG，并保持同一画布比例和脚底位置。'
 })
 let file=null

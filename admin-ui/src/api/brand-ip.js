@@ -13,4 +13,7 @@ export async function brandAction(item, action, releaseId){
   catch(error){if(error.code)sessionStorage.removeItem(pendingKey());throw error}
 }
 export async function retryBrandAction(){const p=pendingBrandAction();if(p)return brandAction({id:p.id},p.body.action,p.body.releaseId)}
-export const brandPayload = item => ({code:item.code,name:item.name,description:item.description,city:item.city,coverAssetId:item.coverAssetId})
+export const brandPayload = item => ({
+  code:item.code,name:item.name,description:item.description,city:item.city,coverAssetId:item.coverAssetId,
+  ...('backgroundAssetId' in item ? {backgroundAssetId:item.backgroundAssetId||null} : {}),
+})

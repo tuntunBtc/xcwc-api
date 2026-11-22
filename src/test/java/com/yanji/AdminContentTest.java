@@ -201,6 +201,25 @@ class AdminContentTest {
         brands.delete(id,created.get("draftVersion").toString());
         assertThrows(RegistrationService.Failure.class,()->brands.detail(id));
     }
+    @Test void brandBackgroundPersistsAndPublishesOnlyForSelectedIp(){
+        publish();
+        var created=brands.create(json.createObjectNode().put("name","另一个角色").put("backgroundAssetId",asset));
+        assertEquals(asset,created.get("backgroundAssetId"));
+        var before=brands.detail("yellow");
+        var input=brandInput(before).put("city","杭州").put("backgroundAssetId",asset);
+        var configured=brands.save("yellow",before.get("draftVersion").toString(),input);
+        assertEquals(asset,configured.get("backgroundAssetId"));
+        assertFalse(BrandIpContent.character(content.published(),"yellow").has("backgroundAssetId"));
+        var renamed=brands.save("yellow",configured.get("draftVersion").toString(),brandInput(configured).put("name","新的名称"));
+        assertEquals(asset,renamed.get("backgroundAssetId"));
+        brandAction("yellow","publish",renamed,requestId());
+        assertEquals(asset,((JsonNode)content.publicCharacter("yellow").get("character")).path("backgroundAssetId").asText());
+        assertFalse(BrandIpContent.character(content.published(),"fixture_two").has("backgroundAssetId"));
+        var cleared=brands.save("yellow",brands.detail("yellow").get("draftVersion").toString(),brandInput(renamed).putNull("backgroundAssetId"));
+        assertNull(cleared.get("backgroundAssetId"));
+        brandAction("yellow","publish",cleared,requestId());
+        assertFalse(BrandIpContent.character(content.published(),"yellow").has("backgroundAssetId"));
+    }
     @Test void brandHttpPermissionsAndThumbnailsAreProtected() throws Exception {
         mvc.perform(get("/admin/v1/bird/brand-ips")).andExpect(status().isUnauthorized());
         mvc.perform(post("/admin/v1/bird/brand-ips").header("Authorization",reader).contentType("application/json").content("{\"name\":\"denied\"}")).andExpect(status().isForbidden());

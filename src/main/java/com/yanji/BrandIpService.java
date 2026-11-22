@@ -50,6 +50,7 @@ public class BrandIpService {
         var r=role(doc,id);var l=look(doc,r);var released=BrandIpContent.character(live,id);
         var out=new LinkedHashMap<String,Object>();out.put("id",id);out.put("code",r.path("code").asText());out.put("name",r.path("name").asText());out.put("description",r.path("description").asText());
         out.put("city",r.path("brand").path("cityName").asText());out.put("cityCode",r.path("brand").path("cityCode").asText());out.put("coverAssetId",r.path("brand").path("coverAssetId").asText());
+        out.put("backgroundAssetId",r.path("backgroundAssetId").asText(null));
         out.put("status",released==null?"new":released.path("adoptionEnabled").asBoolean()?"listed":"delisted");
         out.put("dirty",released==null||!normalizedForComparison(doc,id).equals(normalizedForComparison(live,id)));
         out.put("draftVersion",draftToken(doc,id));out.put("stateVersion",stateToken(live,id));out.put("updatedAt",revision(id).get("updated_at").toString());
@@ -93,7 +94,18 @@ public class BrandIpService {
     }
     private void write(JsonNode d){String value=content.encode(d);if(value.length()>2000000)throw ContentRules.fail("CONTENT_TOO_LARGE");db.update("UPDATE content_workspace SET draft=?,version=version+1 WHERE id=1",value);}
     private void apply(ObjectNode d,String id,JsonNode input){
-        ContentRules.fields(input,"name","description","city","coverAssetId","expressions","code","animation");var r=(ObjectNode)role(d,id);var l=(ObjectNode)look(d,r);
+        ContentRules.fields(input,"name","description","city","coverAssetId","backgroundAssetId","expressions","code","animation");var r=(ObjectNode)role(d,id);var l=(ObjectNode)look(d,r);
+        if(input.has("backgroundAssetId")){
+            var background=input.get("backgroundAssetId");
+            if(background.isNull()){
+                r.remove("backgroundAssetId");
+            }else{
+                ContentRules.asset(background,new HashSet<>());
+                var asset=content.assetRow(background.asText());
+                if(!Set.of("image/png","image/jpeg","image/webp").contains(Objects.toString(asset.get("mime"),"")))throw ContentRules.fail("ASSET_TYPE_MISMATCH");
+                r.put("backgroundAssetId",background.asText());
+            }
+        }
         if(input.has("animation")&&!Objects.equals(input.get("animation"),l.path("animation"))){
             if(input.hasNonNull("animation")||l.hasNonNull("animation")){
                 content.requireAnimationEditing();
