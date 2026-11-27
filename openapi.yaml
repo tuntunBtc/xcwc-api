@@ -9,6 +9,101 @@ servers:
 - url: /
   description: 使用目标环境的源站。管理接口使用受保护的后台 IP，小鸟接口使用 API 域名；测试后端由网关在路径前加 /test。已发布清单的不可变素材地址仍为 /bird/v1/content/assets/{id}。
 paths:
+  /bird/v1/me/pets/{petId}/diary:
+    parameters:
+    - $ref: '#/components/parameters/DiaryPetId'
+    get:
+      operationId: getPetDiaryCalendar
+      summary: 按日期范围查看本鸟日历
+      description: 日期以北京时间为准，起止均含，最多 62 天。允许查询日历中的未来日期格，响应只包含已有日记的日期。查询不创建日记。
+      tags: [小鸟日记]
+      security: &diarySecurity
+      - bearer: []
+      parameters:
+      - { name: from, in: query, required: true, schema: { type: string, format: date } }
+      - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: 北京时间当天及日历记录，Cache-Control 为 no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetDiaryCalendar'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '410':
+          $ref: '#/components/responses/Error'
+  /bird/v1/me/pets/{petId}/diary/today:
+    parameters:
+    - $ref: '#/components/parameters/DiaryPetId'
+    post:
+      operationId: ensurePetDiaryToday
+      summary: 确保本鸟已有当天日记
+      description: 使用服务端北京时间生成当前自然日的一篇日记，已生成则返回已有记录。按宠物归属和日期幂等，不生成历史日记。
+      tags: [小鸟日记]
+      security: *diarySecurity
+      responses: &diaryDayResponses
+        '200':
+          description: 日记、活动和往来信件，Cache-Control 为 no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetDiaryDay'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '410':
+          $ref: '#/components/responses/Error'
+  /bird/v1/me/pets/{petId}/diary/{date}:
+    parameters:
+    - $ref: '#/components/parameters/DiaryPetId'
+    - $ref: '#/components/parameters/DiaryBusinessDate'
+    get:
+      operationId: getPetDiaryDay
+      summary: 查看当天日记、活动和往来信件
+      description: 无日记的日期返回 DIARY_NOT_FOUND。只读，不改变回信状态。
+      tags: [小鸟日记]
+      security: *diarySecurity
+      responses: *diaryDayResponses
+  /bird/v1/me/pets/{petId}/diary/{date}/letters:
+    parameters:
+    - $ref: '#/components/parameters/DiaryPetId'
+    - $ref: '#/components/parameters/DiaryBusinessDate'
+    post:
+      operationId: leavePetDiaryLetter
+      summary: 留言并收到一封新回信
+      description: 使用同一宠物的同一请求标识和相同内容重试，不会重复留言或回信。相同标识用于其他日期或内容返回 IDEMPOTENCY_CONFLICT。新回信初始未读。
+      tags: [小鸟日记]
+      security: *diarySecurity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetDiaryLetterRequest'
+      responses:
+        <<: *diaryDayResponses
+        '409':
+          $ref: '#/components/responses/Error'
+  /bird/v1/me/pets/{petId}/diary/{date}/letters/{letterId}/read:
+    parameters:
+    - $ref: '#/components/parameters/DiaryPetId'
+    - $ref: '#/components/parameters/DiaryBusinessDate'
+    - { name: letterId, in: path, required: true, schema: { type: string, pattern: '^[0-9a-f]{32}$' } }
+    post:
+      operationId: markPetDiaryReplyRead
+      summary: 将一封回信标为已读
+      description: 按宠物、日期和信件归属逐封更新；重试保留首次已读时间。
+      tags: [小鸟日记]
+      security: *diarySecurity
+      responses: *diaryDayResponses
   /bird/v1/me/pets:
     get:
       operationId: listCloudPets
@@ -3786,6 +3881,18 @@ components:
       name: X-Preview-Token
       description: 授权生成的 15 分钟只读草稿凭据；不记录至 URL 或日志。
   parameters:
+    DiaryPetId:
+      name: petId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[0-9a-f]{32}$' }
+      description: 当前登录账号的宠物领养关系 ID。
+    DiaryBusinessDate:
+      name: date
+      in: path
+      required: true
+      schema: { type: string, format: date }
+      description: 北京时间自然日。
     IfNoneMatch:
       name: If-None-Match
       in: header
@@ -3820,6 +3927,63 @@ components:
                 maxLength: 72
                 description: 同时要求 UTF-8 编码最多 72 字节；密码不可找回
   schemas:
+    PetDiaryCalendar:
+      type: object
+      required: [today, days]
+      properties:
+        today: { type: string, format: date }
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/PetDiaryDaySummary'
+    PetDiaryDaySummary:
+      type: object
+      required: [date, kind, mood, activities, unreadCount]
+      properties:
+        date: { type: string, format: date }
+        kind: { type: string, enum: [home, travel, study] }
+        mood: { type: string, enum: [calm, curious, happy, proud, content] }
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/PetDiaryActivity'
+        unreadCount: { type: integer, format: int64, minimum: 0 }
+    PetDiaryDay:
+      allOf:
+      - $ref: '#/components/schemas/PetDiaryDaySummary'
+      - type: object
+        required: [title, text, letters]
+        properties:
+          title: { type: string, maxLength: 120 }
+          text: { type: string, maxLength: 1000 }
+          letters:
+            type: array
+            items:
+              $ref: '#/components/schemas/PetDiaryLetter'
+    PetDiaryActivity:
+      type: object
+      description: 来自可信旅行或学习业务事件的记录，同一天可同时记录多个活动。
+      required: [kind, title, text]
+      properties:
+        kind: { type: string, enum: [travel, study] }
+        title: { type: string, maxLength: 120 }
+        text: { type: string, maxLength: 1000 }
+    PetDiaryLetter:
+      type: object
+      required: [id, text, reply, createdAt, readAt]
+      properties:
+        id: { type: string, pattern: '^[0-9a-f]{32}$' }
+        text: { type: string, maxLength: 500 }
+        reply: { type: string, maxLength: 800 }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time, nullable: true }
+    PetDiaryLetterRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, text]
+      properties:
+        requestId: { type: string, pattern: '^[A-Za-z0-9_-]{16,64}$' }
+        text: { type: string, minLength: 1, maxLength: 500 }
     PublicOperationalUpload:
       type: object
       additionalProperties: false
