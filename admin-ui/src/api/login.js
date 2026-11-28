@@ -1,3 +1,5 @@
+import {nestTest,readNestSession} from '@/api/nest-test'
+import {getToken} from '@/utils/auth'
 import request from '@/utils/request'
 
 // 登录方法
@@ -33,6 +35,7 @@ export function register(data) {
 
 // 获取用户详细信息
 export function getInfo() {
+  if(nestTest) return readNestSession('getInfo',getToken())
   return request({
     url: '/getInfo',
     method: 'get'

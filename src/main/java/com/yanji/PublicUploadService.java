@@ -28,6 +28,7 @@ public class PublicUploadService {
     private final TransactionTemplate transactions;
     private final String publicBase;
     private final Path directory;
+    @Value("${nest-interactions.enabled:false}") private boolean nestTest;
     private final boolean videoEnabled;
     private final PublicUploadVideoProbe videos;
     private final Semaphore uploadSlots=new Semaphore(1),readSlots=new Semaphore(2),verificationReadSlots=new Semaphore(1);
@@ -73,7 +74,7 @@ public class PublicUploadService {
             try(var source=file.getInputStream();var target=Files.newOutputStream(input)){PublicUploadFiles.copy(source,target,MAX_BYTES);}
             if(Files.size(input)==0)throw failure(HttpStatus.BAD_REQUEST,"PUBLIC_UPLOAD_FILE_REQUIRED");
             Media media=inspect(input);
-            String id=UUID.randomUUID().toString().replace("-", "");String filename=id+"."+media.extension();String url=publicBase+READ_PATH+filename;
+            String id=UUID.randomUUID().toString().replace("-", "");String filename=id+"."+media.extension();String url=publicBase+(nestTest?"/test":"")+READ_PATH+filename;
             var result=new Uploaded(id,url,media.mime(),media.width(),media.height(),Files.size(input),PublicUploadFiles.sha256(input));
             transactions.executeWithoutResult(status->db.update("INSERT INTO public_operational_upload(id,filename,url,mime,width,height,size_bytes,sha256,actor_id,status) VALUES(?,?,?,?,?,?,?,?,?,'UPLOADING')",
                 id,filename,url,media.mime(),media.width(),media.height(),result.size(),result.sha256(),actor.id()));

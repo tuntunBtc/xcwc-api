@@ -2,7 +2,8 @@ import router from './router'
 import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { getToken } from '@/utils/auth'
+import {nestTest} from '@/api/nest-test'
+import { getToken,removeToken } from '@/utils/auth'
 import { isHttp, isPathMatch } from '@/utils/validate'
 import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
@@ -54,6 +55,16 @@ router.beforeEach(async (to, from) => {
         // 重新导航到目标路由，确保动态路由已注册
         return { ...to, replace: true }
       } catch (err) {
+        if (nestTest) {
+          isRelogin.show = false
+          removeToken()
+          useUserStore().token = ''
+          useUserStore().roles = []
+          useUserStore().permissions = []
+          NProgress.done()
+          const message = String(err?.message || '无法读取账号权限').slice(0,130)
+          return {path:'/login',query:{redirect:to.fullPath,nestError:message}}
+        }
         await useUserStore().logOut()
         ElMessage.error(err)
         return { path: '/' }

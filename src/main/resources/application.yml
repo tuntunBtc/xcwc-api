@@ -66,6 +66,9 @@ management-content:
 admin:
   bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
 
+nest-interactions:
+  enabled: ${NEST_INTERACTIONS_TEST_ENABLED:false}
+
 ---
 spring:
   config:

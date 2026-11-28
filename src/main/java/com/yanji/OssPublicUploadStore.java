@@ -9,14 +9,20 @@ import java.util.*;
 
 public final class OssPublicUploadStore implements PublicUploadStore, AutoCloseable {
     static final String PREFIX="content/public-uploads/";
+    static final String NEST_TEST_PREFIX="content/test/nest-interactions/";
+    private final String prefix;
     private final OSS client;
     private final String bucket;
     public OssPublicUploadStore(OSS client,String bucket) {
+        this(client,bucket,false);
+    }
+    OssPublicUploadStore(OSS client,String bucket,boolean nestTest) {
+        this.prefix=nestTest?NEST_TEST_PREFIX:PREFIX;
         if(bucket==null||!bucket.matches("[a-z0-9][a-z0-9-]{1,61}[a-z0-9]"))throw new IllegalArgumentException("Invalid upload bucket");
         this.client=client;this.bucket=bucket;
     }
     @Override public void putFile(String filename,Path file,String mime) throws IOException {
-        String key=PREFIX+PublicUploadStore.checkedFilename(filename);long size=Files.size(file);
+        String key=prefix+PublicUploadStore.checkedFilename(filename);long size=Files.size(file);
         if(size>PublicUploadService.MAX_BYTES)throw new IOException("Object exceeds upload limit");
         var metadata=new ObjectMetadata();metadata.setContentLength(size);metadata.setContentType(mime);
         metadata.setCacheControl("public, max-age=31536000, immutable");
@@ -29,7 +35,7 @@ public final class OssPublicUploadStore implements PublicUploadStore, AutoClosea
         } catch(OSSException|ClientException e){throw new IOException("OSS public upload failed",e);}
     }
     @Override public boolean downloadTo(String filename,Path target) throws IOException {
-        String key=PREFIX+PublicUploadStore.checkedFilename(filename);
+        String key=prefix+PublicUploadStore.checkedFilename(filename);
         try(OSSObject object=client.getObject(bucket,key)) {
             long expected=object.getObjectMetadata().getContentLength();
             if(expected<0||expected>PublicUploadService.MAX_BYTES)throw new IOException("Object exceeds upload limit");

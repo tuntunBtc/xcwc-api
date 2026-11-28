@@ -18,8 +18,9 @@
     <el-table-column label="内容状态" width="135"><template #default="{row}"><el-tag :type="row.dirty?'warning':'success'" effect="plain">{{row.status==='new'?'未发布':row.dirty?'有未发布修改':'已同步'}}</el-tag></template></el-table-column>
     <el-table-column label="表情" width="80"><template #default="{row}">{{row.configured}} / 10</template></el-table-column>
     <el-table-column label="更新时间" min-width="150"><template #default="{row}">{{row.updatedAt||'历史资料'}}</template></el-table-column>
-    <el-table-column label="操作" fixed="right" width="250"><template #default="{row}">
+    <el-table-column label="操作" fixed="right" :width="nestTest ? 325 : 250"><template #default="{row}">
       <el-button v-if="canBrand('edit')" link type="primary" @click="edit(row)">编辑</el-button><el-button link type="primary" @click="expressions(row)">表情管理</el-button>
+      <el-button v-if="nestTest" link type="primary" @click="router.push({name:'NestInteractions',params:{id:row.id},query:route.query})">小窝互动</el-button>
       <el-button v-if="canBrand('status')" link :type="row.status==='listed'?'danger':'primary'" :disabled="busy||!!pending" @click="operate(row,row.status==='listed'?'delist':'list')">{{row.status==='listed'?'下架':'上架'}}</el-button>
       <el-dropdown @command="cmd=>more(row,cmd)"><el-button link>更多 ▾</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-if="canBrand('preview')" command="preview">预览</el-dropdown-item><el-dropdown-item v-if="canBrand('publish')" command="publish" :disabled="!row.dirty||busy">发布更新</el-dropdown-item><el-dropdown-item v-if="canBrand('audit')" command="history">版本记录</el-dropdown-item><el-dropdown-item v-if="canBrand('edit')&&row.status==='new'" command="delete">删除未发布草稿</el-dropdown-item></el-dropdown-menu></template></el-dropdown>
     </template></el-table-column>
@@ -68,6 +69,7 @@
 </div>
 </template>
 <script setup>
+import {nestTest} from '@/api/nest-test'
 import {ElMessage,ElMessageBox} from 'element-plus'
 import {api} from '@/api/operations'
 import {brandDetail,brandPayload,brandAction,canBrand,pendingBrandAction,retryBrandAction} from '@/api/brand-ip'

@@ -3850,6 +3850,93 @@ paths:
           $ref: '#/components/responses/Error'
         '503':
           $ref: '#/components/responses/Error'
+  /test/bird/v1/oss/uploads/{filename}:
+    parameters:
+    - {in: path, name: filename, required: true, schema: {type: string}}
+    get:
+      operationId: getNestTestUpload
+      summary: 测试环境读取独立前缀下的运营素材，支持 Range
+      security: []
+      responses: &nestAssetResponses
+        '200': {description: 完整文件}
+        '206': {description: 请求的字节区间}
+        '304': {description: 缓存有效}
+        '404': {description: 未启用或未找到文件}
+        '416': {description: 字节区间错误}
+    head:
+      operationId: headNestTestUpload
+      summary: 读取测试运营素材响应头
+      security: []
+      responses: *nestAssetResponses
+  /admin/v1/bird/brand-ips/{id}/nest-interactions:
+    parameters: &nestParameters
+    - {name: id, in: path, required: true, schema: {type: string}, description: 稳定的小鸟角色 ID}
+    get:
+      operationId: getNestInteractionDraft
+      summary: 测试环境读取单只鸟的小窝互动草稿
+      description: 测试专用开关默认关闭。需 brand:read。首次读取返回零版本和空动作数组。
+      security: [{adminBearer: []}]
+      responses:
+        '200': &nestResponse
+          description: 当前内容版本和素材绑定
+          content: {application/json: {schema: {$ref: '#/components/schemas/NestInteractionView'}}}
+        '401': {description: 未登录}
+        '403': {description: 缺少权限}
+        '404': {description: 未启用或角色不存在}
+    put:
+      operationId: saveNestInteractionDraft
+      summary: 测试环境按版本保存整鸟草稿
+      description: 需 brand:edit。相同草稿不增加版本。视频及首尾帧引用已验证 OSS 上传记录的 ID，服务端生成 URL 和视频内容编码；已有视频和帧时尺寸须一致。enabled 为草稿动作启用意图。
+      security: [{adminBearer: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedVersion, actions]
+              properties:
+                expectedVersion: {type: integer, format: int64, minimum: 0}
+                actions: {type: array, maxItems: 128, items: {$ref: '#/components/schemas/NestInteractionAction'}}
+      responses:
+        '200': *nestResponse
+        '400': {description: 素材引用、尺寸或动作配置错误}
+        '401': {description: 未登录}
+        '403': {description: 缺少权限}
+        '404': {description: 未启用或角色不存在}
+        '409': {description: 草稿版本已改变，请重新读取}
+  /admin/v1/bird/brand-ips/{id}/nest-interactions/publish:
+    parameters: *nestParameters
+    post:
+      operationId: publishNestInteractions
+      summary: 测试环境发布当前角色草稿
+      description: 需 brand:publish。启用的动作须有视频及首尾帧；同一版本重复发布不写入。成功后返回管理草稿及最新发布版本。
+      security: [{adminBearer: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedVersion]
+              properties: {expectedVersion: {type: integer, format: int64, minimum: 0}}
+      responses:
+        '200': *nestResponse
+        '400': {description: 草稿未准备好}
+        '401': {description: 未登录}
+        '403': {description: 缺少权限}
+        '404': {description: 未启用或角色不存在}
+        '409': {description: 草稿版本已改变}
+  /bird/v1/nest-interactions/{id}:
+    parameters: *nestParameters
+    get:
+      operationId: getPublishedNestInteractions
+      summary: 测试小程序读取已发布互动配置
+      description: 网关测试前缀为 /test。返回网站已发布角色的互动快照，只包含启用的动作；响应的 version 与 publishedVersion 相同。
+      security: []
+      responses:
+        '200': *nestResponse
+        '404': {description: 未启用、角色未发布或尚无已发布配置}
 components:
   headers:
     ShopCacheControl:
@@ -3927,6 +4014,30 @@ components:
                 maxLength: 72
                 description: 同时要求 UTF-8 编码最多 72 字节；密码不可找回
   schemas:
+    NestInteractionView:
+      type: object
+      required: [characterId, version, publishedVersion, actions]
+      properties:
+        characterId: {type: string}
+        version: {type: integer, format: int64}
+        publishedVersion: {type: integer, format: int64}
+        actions: {type: array, items: {$ref: '#/components/schemas/NestInteractionAction'}}
+    NestInteractionAction:
+      type: object
+      required: [actionCode, name, group, enabled, sound]
+      properties:
+        actionCode: {type: string, description: '固定编码 awake_idle、fall_asleep、sleep_idle、wake_up、head_pat、eat、drink、angry，或 food-/emotion- 加 32 位小写十六进制 ID'}
+        name: {type: string, maxLength: 20}
+        group: {type: string, enum: [daily, food, emotion]}
+        enabled: {type: boolean}
+        sound: {type: boolean}
+        videoId: &nestAsset {type: string, pattern: '^[0-9a-f]{32}$', nullable: true}
+        firstFrameId: *nestAsset
+        lastFrameId: *nestAsset
+        videoCode: {type: string, nullable: true, readOnly: true, description: 'vid_ 加视频 SHA-256'}
+        videoUrl: &nestURL {type: string, format: uri, readOnly: true, nullable: true}
+        firstFrameUrl: *nestURL
+        lastFrameUrl: *nestURL
     PetDiaryCalendar:
       type: object
       required: [today, days]

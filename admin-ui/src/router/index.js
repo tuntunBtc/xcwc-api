@@ -1,6 +1,8 @@
 import { createWebHistory, createRouter } from 'vue-router'
 import Layout from '@/layout'
+import {nestTest} from '@/api/nest-test'
 export const constantRoutes = [
+ ...(nestTest ? [{path:'/brand-ip-nest',component:Layout,hidden:true,children:[{path:':id',name:'NestInteractions',component:()=>import('@/views/operations/nest/Interactions.vue'),meta:{title:'小窝互动'}}]}] : []),
  {path:'/login',component:()=>import('@/views/login.vue'),hidden:true},
  {path:'/',redirect:'/brand-ips/list',hidden:true},
  {path:'/index',redirect:'/brand-ips/list',hidden:true},

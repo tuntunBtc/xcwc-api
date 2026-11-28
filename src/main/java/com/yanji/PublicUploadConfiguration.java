@@ -11,7 +11,8 @@ public class PublicUploadConfiguration {
     public PublicUploadStore publicUploadStore(Environment env) throws Exception {
         var client = OssClientFactory.ossClient(env);
         try {
-            return new OssPublicUploadStore(client, env.getRequiredProperty("management-content.oss.bucket"));
+            return new OssPublicUploadStore(client, env.getRequiredProperty("management-content.oss.bucket"),
+                env.getProperty("nest-interactions.enabled",Boolean.class,false));
         } catch (RuntimeException e) { client.shutdown(); throw e; }
     }
 

@@ -37,6 +37,19 @@ class PublicUploadStoreTest {
         store.close();verify(client).shutdown();
     }
 
+    @Test void testUploadsUseSeparatePrefixForWritesAndReads() throws Exception {
+        OSS client=mock(OSS.class);
+        var store=new OssPublicUploadStore(client,BUCKET,true);
+        store.put(NAME,new byte[]{1},"image/png");
+        var put=org.mockito.ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(client).putObject(put.capture());
+        assertThat(put.getValue().getKey()).isEqualTo("content/test/nest-interactions/"+NAME);
+        doThrow(new OSSException("fixture","NoSuchKey","request","host",null,null,null)).when(client).getObject(anyString(),anyString());
+        assertThat(store.find(NAME)).isEmpty();
+        verify(client).getObject(BUCKET,"content/test/nest-interactions/"+NAME);
+        verify(client,never()).getObject(BUCKET,"content/public-uploads/"+NAME);
+    }
+
     @Test void missingForbiddenAndOverLimitOssReadsAreDistinguished() throws Exception {
         OSS client=mock(OSS.class);var store=new OssPublicUploadStore(client,BUCKET);
         OSSException missing=new OSSException("fixture","NoSuchKey","request","host",null,null,null);
